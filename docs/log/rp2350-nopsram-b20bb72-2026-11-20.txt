@@ -1,0 +1,14 @@
+# 2026-11-20 18:30:55 fallback check of commit b20bb72 on an RP2350-Touch-LCD-4 WITHOUT PSRAM: USB serial efa4446a6990c7fc (it ran an owner's C firmware, 2e8a:0009;
+# the owner agreed to overwrite it without a backup). Bootloader by a 1200-baud open, uf2 sha256 d2a05ba4 copied to the RP2350 disk. / was empty.
+v1.29.0-patched on 2026-11-20, freq 150000000, WIDTH 240 HEIGHT 240 SCALE 2, fb 0x20062e00 (SRAM), psram False
+mem_free 351 632 before display_driver, 194 512 after (BUFFERS 2); touch: none (GT911 EIO, as on board 2)
+# tests/hil/t03_panel.py:
+bars drawn in 982 ms
+frames 289 in 5000 ms -> 57.80 fps (nominal 57.73)
+underruns during 5 s: 0
+wrote 200 KB in 2888 ms, frames 167 (expected ~167), underruns 0
+rp2.StateMachine(0) on PIO0: ok
+underruns total: 0 frames: 1252
+mem_free: 342240
+# Ctrl-C contract sleep, stdin, cb: main 60/60 each, FPS 28.3, RESULT OK -> docs/log/ctrlc-contract-RP2350-nopsram-b20bb72-*.txt
+# result: without PSRAM the firmware behaves as v0.1.7 (240x240, two buffers, 150 MHz), slightly more free heap
