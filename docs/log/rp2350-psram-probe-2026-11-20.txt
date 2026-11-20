@@ -185,3 +185,4 @@ target 5 clicked at (242, 227)
 targets hit: [1, 2, 3, 4, 5]
 # result: all 5 hit, no press on the background
 # 2026-11-20 17:20:43 Ctrl-C contract, touch (owner touching from 10 s after start): main 60/60, FPS 28.3/28.7, RESULT OK -> docs/log/ctrlc-contract-RP2350-psram480-touch.txt
+# 2026-11-20 18:35:50 the same uf2 (sha256 d2a05ba4, commit b20bb72) written to the PSRAM board fb05bfd14aef915b
