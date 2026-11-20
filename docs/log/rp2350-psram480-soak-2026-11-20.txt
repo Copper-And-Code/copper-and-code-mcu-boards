@@ -1,0 +1,33 @@
+# 2026-11-20 17:21:56 tests/hil/t06_soak.py, 1 h, RP2350-Touch-LCD-4 fb05bfd14aef915b with PSRAM, option B firmware (uf2 sha256 509950fb, worktree uncommitted): 480x480 from SRAM, one buffer, sys 240 MHz, GC heap in PSRAM
+t=    0s frames=     16 fps=16.00 underruns=0 mem_free=8170640 min_free=8170656 allocs=40 errors=0
+t=   60s frames=   3490 fps=58.17 underruns=0 mem_free=8148560 min_free=8132576 allocs=8080 errors=0
+t=  120s frames=   6943 fps=57.86 underruns=0 mem_free=8148560 min_free=8132576 allocs=16080 errors=0
+t=  180s frames=  10417 fps=57.87 underruns=0 mem_free=8146560 min_free=8132576 allocs=24120 errors=0
+t=  240s frames=  13875 fps=57.81 underruns=0 mem_free=8146560 min_free=8132576 allocs=32120 errors=0
+t=  300s frames=  17345 fps=57.82 underruns=0 mem_free=8144560 min_free=8132576 allocs=40160 errors=0
+t=  360s frames=  20797 fps=57.77 underruns=0 mem_free=8144560 min_free=8132576 allocs=48160 errors=0
+t=  420s frames=  24272 fps=57.79 underruns=0 mem_free=8142560 min_free=8132576 allocs=56200 errors=0
+t=  480s frames=  27730 fps=57.77 underruns=0 mem_free=8142560 min_free=8132576 allocs=64200 errors=0
+t=  540s frames=  31199 fps=57.78 underruns=0 mem_free=8140560 min_free=8132576 allocs=72240 errors=0
+t=  600s frames=  34651 fps=57.75 underruns=0 mem_free=8140560 min_free=8132576 allocs=80240 errors=0
+t=  660s frames=  38126 fps=57.77 underruns=0 mem_free=8138560 min_free=8132576 allocs=88280 errors=0
+t=  720s frames=  41579 fps=57.75 underruns=0 mem_free=8138560 min_free=8132576 allocs=96280 errors=0
+t=  780s frames=  45053 fps=57.76 underruns=0 mem_free=8136560 min_free=8132576 allocs=104320 errors=0
+t=  840s frames=  48506 fps=57.75 underruns=0 mem_free=8136560 min_free=8132576 allocs=112320 errors=0
+t=  900s frames=  51980 fps=57.76 underruns=0 mem_free=8134560 min_free=8132576 allocs=120360 errors=0
+t=  960s frames=  55433 fps=57.74 underruns=0 mem_free=8134560 min_free=8132576 allocs=128360 errors=0
+t= 1020s frames=  58908 fps=57.75 underruns=0 mem_free=8132560 min_free=8132576 allocs=136400 errors=0
+t= 1080s frames=  62360 fps=57.74 underruns=0 mem_free=8132560 min_free=8132576 allocs=144400 errors=0
+t= 1140s frames=  65835 fps=57.75 underruns=0 mem_free=8150608 min_free=8132576 allocs=152440 errors=0
+t= 1200s frames=  69287 fps=57.74 underruns=0 mem_free=8150608 min_free=8132576 allocs=160440 errors=0
+t= 1260s frames=  72762 fps=57.75 underruns=0 mem_free=8148560 min_free=8132576 allocs=168480 errors=0
+t= 1320s frames=  76220 fps=57.74 underruns=0 mem_free=8148560 min_free=8132576 allocs=176480 errors=0
+t= 1380s frames=  79689 fps=57.75 underruns=0 mem_free=8146560 min_free=8132576 allocs=184520 errors=0
+t= 1440s frames=  83142 fps=57.74 underruns=0 mem_free=8146560 min_free=8132576 allocs=192520 errors=0
+t= 1500s frames=  86617 fps=57.74 underruns=0 mem_free=8144560 min_free=8132576 allocs=200560 errors=0
+t= 1560s frames=  90070 fps=57.74 underruns=0 mem_free=8144560 min_free=8132576 allocs=208560 errors=0
+t= 1620s frames=  93545 fps=57.74 underruns=0 mem_free=8142560 min_free=8132576 allocs=216600 errors=0
+t= 1680s frames=  96997 fps=57.74 underruns=0 mem_free=8142560 min_free=8132576 allocs=224600 errors=0
+t= 1740s frames= 100472 fps=57.74 underruns=0 mem_free=8140560 min_free=8132576 allocs=232640 errors=0
+t= 1800s frames= 103924 fps=57.74 underruns=0 mem_free=8140560 min_free=8132576 allocs=240640 errors=0
+# stopped at 30 min (owner asked to halve the test): host killed after the t=1800s line, then Ctrl-C to the board

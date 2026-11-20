@@ -8,7 +8,8 @@
 # With two buffers (default when the heap has room) LVGL draws into the hidden
 # one and the flush callback (in C) shows it at the end of a frame: no tearing. With one
 # buffer LVGL draws into the buffer being scanned out. The framebuffer is
-# rgbpanel.WIDTH x rgbpanel.HEIGHT: 240x240 shown as 2x2 pixels without PSRAM.
+# rgbpanel.WIDTH x rgbpanel.HEIGHT: 480x480 with PSRAM fitted, else 240x240 shown
+# as 2x2 pixels (chosen at boot by modules/rgbpanel).
 #
 # The GT911 touch controller is registered as LVGL pointer device (touch, indev).
 #

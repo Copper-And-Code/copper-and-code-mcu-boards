@@ -18,7 +18,7 @@ older, there is no `CONTRACT`.
 |---|---|
 | `import display_driver` | Display, touch and LVGL are on. LVGL is served in the background, `lv.timer_handler()` every `PERIOD_MS`, so the application needs no main loop. Importing again is safe. |
 | `CONTRACT` | `1`, the version of this contract. A program can test `hasattr(display_driver, "CONTRACT")` to tell older firmware apart. |
-| `WIDTH`, `HEIGHT` | The logical resolution LVGL draws at. On the RP2350 without PSRAM it is 240x240, shown as 2x2 pixels. |
+| `WIDTH`, `HEIGHT` | The logical resolution LVGL draws at. On the RP2350 without PSRAM it is 240x240, shown as 2x2 pixels; with PSRAM 480x480. |
 | `BUFFERS` | How many framebuffers the driver uses: 2, or 1 when there was no room for two. |
 | `PERIOD_MS` | The period of the background service. |
 | `indev` | The touch input device, or `None` if no touch controller answered. |

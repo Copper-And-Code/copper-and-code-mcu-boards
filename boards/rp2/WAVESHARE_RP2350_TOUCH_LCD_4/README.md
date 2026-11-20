@@ -10,31 +10,47 @@ interrupts during scan-out).
 
 ## Status
 
-Measured on one board, without PSRAM. Logs and method in
+Measured on boards without PSRAM, and on one with an 8 MB PSRAM fitted on U9
+(2026-11-20). Logs and method in
 [`docs/rp2350-touch-lcd4.md`](../../../docs/rp2350-touch-lcd4.md) and `docs/log/`.
 
 | | State |
 |---|---|
-| Display | Works. **240x240 framebuffer shown as 2x2 pixels** (see *PSRAM* below). 57.7 fps at the default 150 MHz, 0 underruns in 1 h and during flash writes |
-| LVGL | Works. Double buffered (no tearing), pixel output identical to the unix port (64/64 tiles CRC). Full-screen redraw 9.2 ms at 150 MHz |
+| Display | Works. Without PSRAM: **240x240 framebuffer shown as 2x2 pixels**, 57.7 fps at 150 MHz, 0 underruns in 1 h and during flash writes. With PSRAM: **480x480**, 57.7 fps at 240 MHz (see *PSRAM* below) |
+| LVGL | Works. Without PSRAM double buffered (no tearing), pixel output identical to the unix port (64/64 tiles CRC), full-screen redraw 9.2 ms at 150 MHz. With PSRAM one buffer (see below) |
 | Touch | Works (GT911, LVGL pointer device, no rotation needed). A second unit we have has no touch controller: `display_driver` then runs without it (`display_driver.touch` is `None`) |
 | Soft reset, Ctrl-C | Work with LVGL running (the scan-out keeps going; LVGL restarts clean) |
 | Overclock | 200 and 240 MHz tested (PCLK 20 MHz, 76.7 fps), core voltage unchanged. Not the default |
 | Backlight | PWM, 0–100 % |
-| PSRAM (U9, not fitted on our board) | Firmware supports it (autodetect, CS GPIO47); **not tested** |
-| 480x480 framebuffer | Not possible without PSRAM; not tested |
+| PSRAM (U9, not fitted by Waveshare) | Works, detected at boot (APS6404L, 8 MB, CS GPIO47): the GC heap moves to PSRAM (8.2 MB) and the display goes to 480x480 |
+| 480x480 framebuffer | Works with PSRAM: Ctrl-C contract 4 x 60, touch aligned, 30 min soak (see `docs/rp2350-touch-lcd4.md`). Not possible without PSRAM |
 | SD card, CAN (XL2515), RTC, IMU, buzzer, battery | Not covered by this port beyond the pin names. RTC (0x51) and IMU (0x6B) answer on I2C1 |
 
 ### PSRAM and resolution
 
 A 480x480 RGB565 framebuffer is 460 800 B; the RP2350 has 520 KiB of SRAM. The PSRAM
-footprint (U9) is marked NC on the schematic and is empty on our board, so the default
-build uses a 240x240 framebuffer (115 200 B) that the hardware doubles in both directions.
-LVGL works at 240x240; text and graphics are visibly coarser than native resolution.
+footprint (U9) is marked NC on the schematic and is empty on the boards Waveshare ships.
+The same firmware serves both, and chooses at boot:
 
-With an APS6404L fitted on U9 the firmware adds the PSRAM to the MicroPython heap.
-Building with `MICROPY_HW_RGBPANEL_SCALE` set to 1 in `mpconfigboard.h` should then give
-480x480 with one buffer (a second 480x480 buffer does not fit in SRAM). Untested.
+| | Without PSRAM | With PSRAM on U9 |
+|---|---|---|
+| Framebuffer | 240x240 in SRAM, shown as 2x2 pixels | 480x480 in SRAM |
+| GC heap | SRAM, ~330 KB free after `import display_driver` | PSRAM, ~8.2 MB |
+| Buffers | 2 (no tearing) | 1: LVGL draws into the buffer being shown |
+| System clock | 150 MHz | 240 MHz (the PSRAM then runs at 120 MHz) |
+| Refresh | 57.7 Hz | 57.7 Hz |
+
+The framebuffer stays in SRAM because the panel's DMA must never wait on the flash/PSRAM
+bus: any DMA access to it holds the DMA up for 2-4 us, longer than the 16 pixels the PIO
+FIFO holds, and the picture shifts. With PSRAM the heap therefore leaves SRAM to make room
+for a 480x480 framebuffer (`patches/micropython`), and a second 480x480 buffer, which would
+be in PSRAM, is refused (`init(buffers=2)` raises `MemoryError`; `display_driver` then uses
+one). `MICROPY_HW_RGBPANEL_SCALE` 1 or 2 in `mpconfigboard.h` forces a scale.
+
+**Do not use `rp2.DMA` on PSRAM or flash addresses while the panel runs** (at either
+scale): the panel loses pixels for as long as the transfer lasts. DMA between SRAM
+buffers and peripherals is fine. **With PSRAM, do not change `machine.freq()`**: the PSRAM
+timing is set for 240 MHz at boot.
 
 ## Build
 
@@ -87,7 +103,7 @@ More in [`examples/`](../../../examples/) (hello, touch button, animation, backl
 `display_driver` runs `lv.timer_handler()` from a 5 ms timer, so a script can end and the
 UI keeps running (put it in `main.py` to start at boot). It sets up:
 
-- `display_driver.disp`: the LVGL display, `WIDTH` x `HEIGHT` (240 x 240), RGB565;
+- `display_driver.disp`: the LVGL display, `WIDTH` x `HEIGHT` (240 x 240, or 480 x 480 with PSRAM), RGB565;
 - `display_driver.indev`: the GT911 pointer device (`None` if the touch does not answer);
 - `display_driver.stop()` / `start()`: stop/restart the timer, for programs with their own
   loop calling `lv.timer_handler()`.
@@ -122,14 +138,14 @@ but the rule stays.
 
 | | |
 |---|---|
-| `init(pclk_hz=15_000_000, backlight=80, *, buffers=None)` | start the panel (idempotent; restarts the scan-out if the system clock changed). `buffers=2` allocates a second framebuffer on the heap, `1` frees it |
+| `init(pclk_hz=0, backlight=80, *, buffers=None)` | start the panel (idempotent; restarts the scan-out if the system clock changed). `pclk_hz=0` is 15 MHz. `buffers=2` allocates a second framebuffer on the heap (not at 480x480: `MemoryError`), `1` frees it |
 | `deinit()` | stop the scan-out |
 | `framebuffer(i=0)` | memoryview (`'H'`, RGB565) of framebuffer `i` |
 | `shown()`, `swap(timeout_ms=100)` | index of the buffer on screen; show the other one at the end of the frame |
 | `backlight([percent])` | get/set the backlight |
 | `wait_vsync(timeout_ms=100)` | wait for the end of the active area |
 | `frame_count()`, `underruns()`, `info()` | counters and state |
-| `WIDTH`, `HEIGHT`, `SCALE` | framebuffer size and pixel scale |
+| `WIDTH`, `HEIGHT`, `SCALE` | framebuffer size and pixel scale, chosen at boot (480, 480, 1 with PSRAM; 240, 240, 2 without) |
 
 ### Resources used
 

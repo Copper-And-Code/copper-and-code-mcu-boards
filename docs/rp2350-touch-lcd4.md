@@ -209,11 +209,62 @@ With a second framebuffer for double buffering (`init(buffers=2)`, GC heap): 115
 `gc.mem_free()` ~211 000 B right after `import display_driver` with two buffers and touch.
 
 **480x480 is not possible without PSRAM**: a 460 800 B framebuffer leaves ~27 KiB of SRAM
-heap for everything else. With PSRAM fitted (APS6404L on U9, 8 MB, CS GPIO47) the GC heap
-extends into PSRAM and `MICROPY_HW_RGBPANEL_SCALE = 1` becomes usable; a second 480x480
-framebuffer still would not fit in SRAM (double buffering only at 240x240).
+heap for everything else. With PSRAM the GC heap moves to PSRAM and the framebuffer takes
+the SRAM heap area instead (next section).
 
-## PSRAM
+## PSRAM (2026-11-20)
 
-None on this board (`gc.mem_free()` 474 496 B with the upstream WAVESHARE_RP2350B_CORE
-firmware: SRAM only). Not measured.
+Board 1 with an 8 MB PSRAM (APS6404L) fitted on U9 by the owner. Full log:
+`log/rp2350-psram-probe-2026-11-20.txt`, soak `log/rp2350-psram480-soak-2026-11-20.txt`.
+
+**The memory.** Detected at boot on CS GPIO47 by v0.1.7 as is: GC heap 8 553 280 B. 8 patterns
+over 8 192 000 B, 0 errors, at the QMI's 75 MHz (150 MHz system clock) and at 120 MHz
+(240 MHz). The Ctrl-C contract (4 x 60) passed with the heap in PSRAM, 28.3 fps as before.
+
+**Bandwidth.** DMA read of one 480x480 frame: 26.7 / 28.1 MB/s (cached / uncached alias) at
+150 MHz, 42.8 / 45.6 MB/s at 240 MHz, the same with the CPU reading or writing PSRAM. A
+480x480 scan-out needs 26.6 MB/s on average, 30 MB/s within a line at PCLK 15 MHz.
+
+**Why the framebuffer cannot be in PSRAM.** Bandwidth is not the problem; the PIO FIFO
+holds 16 pixels (1.1 us at 15 MHz) and **any DMA access to XIP holds the DMA engine up
+for 2-4 us**, also for channels that only read SRAM. Measured on v0.1.7 (240x240 from SRAM),
+underruns in 20 s while a second DMA channel copies in a loop:
+
+| Second channel | Underruns |
+|---|---|
+| none | 0 |
+| PSRAM to SRAM | 401 (every poll) |
+| SRAM to SRAM | 0 |
+| XIP stream FIFO (PSRAM, paced by DREQ_XIP_STREAM) | 399 |
+
+With the PSRAM copy running, the scan-out is clean from PCLK 7.5 MHz on (x2: the FIFO
+covers 4.3 us), not at 15 MHz (2.1 us); a 480x480 scan-out would need ~3.75 MHz (14 Hz).
+The CPU reading PSRAM does not disturb the DMA (0 underruns).
+
+Tried and dropped:
+- Framebuffer in PSRAM, read by the panel DMA: the PIO stalls and stays late (the
+  line-start IRQ is already pending), the picture shifts right with stray pixels.
+- An 8-line ring in SRAM filled by two more DMA channels from PSRAM: the same stalls,
+  through the shared DMA engine.
+- Core 1 copying lines into the ring: clean when idle (38.5 Hz at PCLK 10 MHz; one core
+  copies ~20 MB/s at 240 MHz), but core 0 writing PSRAM (LVGL drawing) starves it: 94 % of
+  the lines late, i.e. shown 8 lines off.
+
+**What the firmware does** (`modules/rgbpanel`, `patches/micropython`): at boot, before
+`gc_init()`, the board hook `MICROPY_BOARD_SRAM_HEAP` takes the framebuffer from the end of
+the SRAM heap area: 480x480 with PSRAM (the GC heap is then PSRAM only), 240x240 without.
+With PSRAM the system clock goes to 240 MHz before the flash and PSRAM timing is set.
+Measured (`docs/log/rp2350-psram-probe-2026-11-20.txt`):
+- 57.70 fps at PCLK 15 MHz, 0 underruns, also with core 0 writing or reading 1 MB of PSRAM;
+- `t03_panel.py`: 57.80 fps, 0 underruns, 0 during 200 KB of flash writes;
+- Ctrl-C contract 60/60 in all four cases (sleep, stdin, cb, touch), LVGL 28.7 fps with one
+  buffer (`log/ctrlc-contract-RP2350-psram480-*.txt`);
+- touch at 1:1: five targets (corners, centre) all hit;
+- GC heap 8 215 616 B, 8.2 MB free;
+- soak (`t06_soak.py`, one buffer, stopped at 30 min instead of 1 h): 57.74 fps, 0 underruns,
+  0 errors, 240 640 Python allocations, lowest free heap 8 132 576 B, steady at ~8.14 MB
+  (`log/rp2350-psram480-soak-2026-11-20.txt`).
+
+One buffer only: a second 480x480 buffer would be on the GC heap in PSRAM, which the panel
+DMA must not read, so `init(buffers=2)` raises `MemoryError`. Applications must also keep
+`rp2.DMA` off PSRAM and flash addresses while the panel runs, at either scale.

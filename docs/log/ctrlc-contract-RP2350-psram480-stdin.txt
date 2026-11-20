@@ -1,0 +1,76 @@
+# SPECIAL ok: KeyboardInterrupt raised in the main program
+# FPS driver 28.7 driver 28.3
+# 2026-11-20 16:48:52 mode=stdin candidate= trials=60 window=0.80s seed=1795189722 port=/dev/serial/by-id/usb-MicroPython_Board_in_FS_mode_fb05bfd14aef915b-if00
+# board: stdin Waveshare RP2350-Touch-LCD-4 with RP2350
+  1 main             service=continued before=[(277, 1)] after=[(295, 1), (300, 1)] frames+5
+  2 main             service=continued before=[(315, 1)] after=[(332, 1), (337, 1)] frames+5
+  3 main             service=continued before=[(352, 1)] after=[(369, 1), (375, 1)] frames+6
+  4 main             service=continued before=[(392, 1)] after=[(409, 1), (415, 1)] frames+6
+  5 main             service=continued before=[(446, 1)] after=[(464, 1), (469, 1)] frames+5
+  6 main             service=continued before=[(504, 1)] after=[(521, 1), (527, 1)] frames+6
+  7 main             service=continued before=[(555, 1)] after=[(572, 1), (578, 1)] frames+6
+  8 main             service=continued before=[(607, 1)] after=[(624, 1), (630, 1)] frames+6
+  9 main             service=continued before=[(644, 1)] after=[(661, 1), (667, 1)] frames+6
+ 10 main             service=continued before=[(687, 1)] after=[(704, 1), (710, 1)] frames+6
+ 11 main             service=continued before=[(730, 1)] after=[(747, 1), (753, 1)] frames+6
+ 12 main             service=continued before=[(770, 1)] after=[(787, 1), (793, 1)] frames+6
+ 13 main             service=continued before=[(821, 1)] after=[(838, 1), (844, 1)] frames+6
+ 14 main             service=continued before=[(875, 1)] after=[(892, 1), (898, 1)] frames+6
+ 15 main             service=continued before=[(927, 1)] after=[(944, 1), (950, 1)] frames+6
+ 16 main             service=continued before=[(970, 1)] after=[(987, 1), (993, 1)] frames+6
+ 17 main             service=continued before=[(1018, 1)] after=[(1036, 1), (1041, 1)] frames+5
+ 18 main             service=continued before=[(1081, 1)] after=[(1099, 1), (1104, 1)] frames+5
+ 19 main             service=continued before=[(1124, 1)] after=[(1142, 1), (1147, 1)] frames+5
+ 20 main             service=continued before=[(1170, 1)] after=[(1187, 1), (1193, 1)] frames+6
+ 21 main             service=continued before=[(1225, 1)] after=[(1242, 1), (1247, 1)] frames+5
+ 22 main             service=continued before=[(1279, 1)] after=[(1296, 1), (1302, 1)] frames+6
+ 23 main             service=continued before=[(1331, 1)] after=[(1348, 1), (1353, 1)] frames+5
+ 24 main             service=continued before=[(1374, 1)] after=[(1391, 1), (1396, 1)] frames+5
+ 25 main             service=continued before=[(1419, 1)] after=[(1437, 1), (1442, 1)] frames+5
+ 26 main             service=continued before=[(1465, 1)] after=[(1482, 1), (1488, 1)] frames+6
+ 27 main             service=continued before=[(1525, 1)] after=[(1543, 1), (1548, 1)] frames+5
+ 28 main             service=continued before=[(1588, 1)] after=[(1605, 1), (1611, 1)] frames+6
+ 29 main             service=continued before=[(1648, 1)] after=[(1665, 1), (1671, 1)] frames+6
+ 30 main             service=continued before=[(1702, 1)] after=[(1720, 1), (1725, 1)] frames+5
+ 31 main             service=continued before=[(1757, 1)] after=[(1774, 1), (1780, 1)] frames+6
+ 32 main             service=continued before=[(1811, 1)] after=[(1828, 1), (1834, 1)] frames+6
+ 33 main             service=continued before=[(1860, 1)] after=[(1877, 1), (1883, 1)] frames+6
+ 34 main             service=continued before=[(1909, 1)] after=[(1926, 1), (1931, 1)] frames+5
+ 35 main             service=continued before=[(1946, 1)] after=[(1963, 1), (1969, 1)] frames+6
+ 36 main             service=continued before=[(2006, 1)] after=[(2023, 1), (2029, 1)] frames+6
+ 37 main             service=continued before=[(2043, 1)] after=[(2060, 1), (2066, 1)] frames+6
+ 38 main             service=continued before=[(2089, 1)] after=[(2106, 1), (2112, 1)] frames+6
+ 39 main             service=continued before=[(2138, 1)] after=[(2155, 1), (2161, 1)] frames+6
+ 40 main             service=continued before=[(2192, 1)] after=[(2209, 1), (2215, 1)] frames+6
+ 41 main             service=continued before=[(2255, 1)] after=[(2272, 1), (2278, 1)] frames+6
+ 42 main             service=continued before=[(2315, 1)] after=[(2332, 1), (2338, 1)] frames+6
+ 43 main             service=continued before=[(2358, 1)] after=[(2375, 1), (2381, 1)] frames+6
+ 44 main             service=continued before=[(2421, 1)] after=[(2438, 1), (2444, 1)] frames+6
+ 45 main             service=continued before=[(2475, 1)] after=[(2492, 1), (2498, 1)] frames+6
+ 46 main             service=continued before=[(2532, 1)] after=[(2549, 1), (2555, 1)] frames+6
+ 47 main             service=continued before=[(2584, 1)] after=[(2601, 1), (2607, 1)] frames+6
+ 48 main             service=continued before=[(2632, 1)] after=[(2649, 1), (2655, 1)] frames+6
+ 49 main             service=continued before=[(2695, 1)] after=[(2712, 1), (2718, 1)] frames+6
+ 50 main             service=continued before=[(2733, 1)] after=[(2750, 1), (2755, 1)] frames+5
+ 51 main             service=continued before=[(2778, 1)] after=[(2796, 1), (2801, 1)] frames+5
+ 52 main             service=continued before=[(2836, 1)] after=[(2853, 1), (2859, 1)] frames+6
+ 53 main             service=continued before=[(2873, 1)] after=[(2890, 1), (2896, 1)] frames+6
+ 54 main             service=continued before=[(2913, 1)] after=[(2930, 1), (2936, 1)] frames+6
+ 55 main             service=continued before=[(2962, 1)] after=[(2979, 1), (2985, 1)] frames+6
+ 56 main             service=continued before=[(3016, 1)] after=[(3033, 1), (3039, 1)] frames+6
+ 57 main             service=continued before=[(3071, 1)] after=[(3088, 1), (3093, 1)] frames+5
+ 58 main             service=continued before=[(3108, 1)] after=[(3125, 1), (3131, 1)] frames+6
+ 59 main             service=continued before=[(3159, 1)] after=[(3177, 1), (3182, 1)] frames+5
+ 60 main             service=continued before=[(3197, 1)] after=[(3214, 1), (3220, 1)] frames+6
+# status reports with a finger on the screen (every 100 ms), during the trials: 0
+# summary mode=stdin trials=60
+#   main       60  100.0%
+#   double      0    0.0%
+#   driver      0    0.0%
+#   scheduler   0    0.0%
+#   lvgl-cb     0    0.0%
+#   app-cb      0    0.0%
+#   lost        0    0.0%
+#   service continued 60, paused and resumed 0, stopped 0, unknown 0
+# end: END 60 | >
+RESULT: OK

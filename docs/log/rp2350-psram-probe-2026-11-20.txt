@@ -1,0 +1,187 @@
+# 2026-11-20 RP2350-Touch-LCD-4 (USB 2e8a:0005, serial fb05bfd14aef915b, /dev/ttyACM2), PSRAM just fitted on U9 by the owner
+# firmware v0.1.7 (0fd6c573ea on 2026-11-14), unchanged; read-only probe after a soft reset, RAM writes only
+uname 0fd6c573ea on 2026-11-14 (GNU 15.2.1 MinSizeRel) Waveshare RP2350-Touch-LCD-4 with RP2350
+freq 150000000
+mem_free 8547152 mem_alloc 6128
+stack: 428 out of 12032
+GC: total: 8553280, used: 6144, free: 8547136
+ No. of 1-blocks: 38, 2-blocks: 10, max blk sz: 68, max free sz: 512276
+alloc_ok_kb 4096 addr 0x1102eec0
+pattern_pages 1024 bad 0 ms 34
+# result: PSRAM autodetected on CS GPIO47; GC heap 8 553 280 B (was ~345 000 B without PSRAM);
+# a 4 MiB bytearray lands in PSRAM (0x11000000 window) and keeps a sparse pattern (2 bytes per 4 KiB page).
+
+# 2026-11-20 14:40:10 full test, viper 32-bit word loops (no allocation during the test), after a soft reset
+# a first version with Python slice compares allocated 4 KiB per page: each GC scanned the 8 MB buffer, the board stopped serving USB; the owner pressed RST
+free_before 8542720 buffer 8192000 from 0x1102eec0 to 0x117feec0
+pass 0x55555555  words 2048000 bad 0  fill 1167 ms  check 684 ms
+pass 0xAAAAAAAA  words 2048000 bad 0  fill 1166 ms  check 684 ms
+pass 0x00000000  words 2048000 bad 0  fill 1166 ms  check 684 ms
+pass 0xFFFFFFFF  words 2048000 bad 0  fill 1167 ms  check 684 ms
+pass index       words 2048000 bad 0  fill 1235 ms  check 936 ms
+pass ~index      words 2048000 bad 0  fill 1234 ms  check 937 ms
+pass hash        words 2048000 bad 0  fill 1249 ms  check 977 ms
+pass ~hash       words 2048000 bad 0  fill 1249 ms  check 978 ms
+viper word loop: write 6.9 MB/s  read 12.3 MB/s
+same loop on SRAM 64 KiB at 0x2002cda0: write 22.8 MB/s  read 19.9 MB/s
+TOTAL_BAD 0
+# result: 8 192 000 B of PSRAM (0x1102eec0-0x117feec0) written and read back with 8 patterns, 0 errors
+
+# 2026-11-20 Ctrl-C contract with the GC heap in PSRAM (tests/hil/ctrlc_probe_host.py --expect contract, 60 trials each)
+# sleep: main 60/60, FPS 28.3/28.6, RESULT OK   -> docs/log/ctrlc-contract-RP2350-psram-sleep.txt
+# stdin: main 60/60, FPS 28.3/28.3, RESULT OK   -> docs/log/ctrlc-contract-RP2350-psram-stdin.txt
+# cb:    main 60/60, FPS 28.3/28.7, RESULT OK   -> docs/log/ctrlc-contract-RP2350-psram-cb.txt
+# (without PSRAM, 2026-11-13: the same 60/60 and 28.3 fps)
+
+# 2026-11-20 DMA read bandwidth, 460 800 B (one 480x480 RGB565 frame) to a fixed SRAM word, unpaced, high priority, best of 5, sys 150 MHz, display off
+sys 150000000 fb at 0x1102eec0
+PSRAM cached alias   26.7 MB/s
+PSRAM uncached alias 28.1 MB/s
+SRAM                 269.7 MB/s
+# needed by a 480x480 scan-out at PCLK 15 MHz: 26.6 MB/s on average, 30 MB/s during a line -> no margin at 150 MHz
+# touch: main 60/60, FPS 28.3/28.7, RESULT OK, the owner touching the screen from 10 s after start -> docs/log/ctrlc-contract-RP2350-psram-touch.txt
+
+# 2026-11-20 14:57:26 TRIAL firmware dist/WAVESHARE_RP2350_TOUCH_LCD_4-CLK240-v0.1.7-dirty.uf2 (sha256 d9b6c38d), variant CLK240:
+# sys clock 240 MHz from boot through MICROPY_BOARD_STARTUP, so main.c tunes flash and PSRAM for it (PSRAM QMI 120 MHz).
+# (a first build set the hook as a -D: CMake dropped the function-style define and the board stayed at 150 MHz)
+# flashed with machine.bootloader() + copy to the RP2350 disk; files on / kept; rollback: dist/WAVESHARE_RP2350_TOUCH_LCD_4-v0.1.7.uf2
+freq 240000000, mem_free 8549024
+pass 0x55555555  words 2048000 bad 0  fill 746 ms  check 423 ms
+pass 0xAAAAAAAA  words 2048000 bad 0  fill 746 ms  check 423 ms
+pass 0x00000000  words 2048000 bad 0  fill 746 ms  check 423 ms
+pass 0xFFFFFFFF  words 2048000 bad 0  fill 746 ms  check 422 ms
+pass index       words 2048000 bad 0  fill 788 ms  check 586 ms
+pass ~index      words 2048000 bad 0  fill 788 ms  check 586 ms
+pass hash        words 2048000 bad 0  fill 798 ms  check 610 ms
+pass ~hash       words 2048000 bad 0  fill 797 ms  check 611 ms
+viper word loop: write 10.9 MB/s  read 19.9 MB/s
+same loop on SRAM 64 KiB at 0x2002cda0: write 36.5 MB/s  read 31.9 MB/s
+TOTAL_BAD 0
+sys 240000000 fb at 0x1102eec0
+PSRAM cached alias   42.8 MB/s
+PSRAM uncached alias 45.6 MB/s
+SRAM                 436.9 MB/s
+# DMA while the CPU competes for the QMI (uncached alias, best of 3):
+sys 240000000
+idle             DMA 45.5 MB/s
+cpu-python       DMA 45.5 MB/s
+cpu-psram-read   DMA 45.3 MB/s
+cpu-psram-write  DMA 45.2 MB/s
+# result: PSRAM clean at 120 MHz (8 patterns, 0 errors); DMA 45.5 MB/s, unchanged with the CPU reading/writing PSRAM; a 480x480 scan-out needs 26.6 MB/s average, 30 MB/s in a line
+
+# 2026-11-20 15:10:29 autodetect firmware (worktree, uncommitted; uf2 sha256 403a9304...): rgbpanel picks scale 1 with PSRAM, the 480x480 framebuffer in .psram_uninitialised below the GC heap, sys clock 240 MHz from MICROPY_BOARD_STARTUP
+# earlier builds: __getattr__ raising AttributeError broke 'import rgbpanel' (__init__ lookup); PICO_PSRAM_SIZE_BYTES as a CMake variable disabled the PSRAM detection (ports/rp2/CMakeLists.txt defers to the SDK board header) -> board fell back to 240x240 at 150 MHz, as designed
+freq 240000000, WIDTH 480 HEIGHT 480 SCALE 1, display_driver BUFFERS 2, fb_addr 0x11000000, mem_free 7 594 624 after display_driver
+# tests/hil/t03_panel.py:
+info: {'scale': 1, 'width': 480, 'fps_nominal': 57.726, 'sys_clk': 240000000, 'dma_channels': (0, 1, 2), 'fb_addr': 285212672, 'backlight': 80, 'state_machines': (4, 5, 8, 9), 'buffers': 1, 'pclk': 15000000, 'fb_bytes': 460800, 'shown': 0, 'height': 480, 'running': True, 'frames': 1344, 'underruns': 2, 'psram': True}
+bars drawn in 5497 ms
+frames 289 in 5000 ms -> 57.80 fps (nominal 57.73)
+underruns during 5 s: 2
+wrote 200 KB in 1134 ms, frames 65 (expected ~65), underruns 2
+rp2.StateMachine(0) on PIO0: ok
+underruns total: 9 frames: 2017
+mem_free: 8087904
+# underruns per 30 s, no LVGL, polled every 100 ms (one count per poll that finds a stall: a lower bound):
+sys 240000000
+pclk 15 MHz  fps 57.70  underruns 303 in 1731 frames
+pclk 12 MHz  fps 46.17  underruns 302 in 1387 frames
+pclk 10 MHz  fps 38.48  underruns 302 in 1156 frames
+pclk 15 MHz  fps 57.72  underruns 302 in 1733 frames
+# tight poll of PIO2 FDEBUG for 313 ms: 1 stall in 18 frames, mid-frame (54128 of 115200 words left)
+# result: 480x480 at 57.7 fps works; FIFO stalls are frequent and independent of PCLK: latency of the shared QMI (CPU code and data in flash and PSRAM), not bandwidth
+
+# 2026-11-20 owner's photo of a 48-px grid pattern at 480x480 (PSRAM framebuffer read by the panel DMA):
+# image shifted right ~15-20 px, thousands of stray pixels, each with the colour of the grid line above it.
+# The framebuffer is correct: CPU read 0 bad pixels of 230 400; DMA copies to SRAM (cached and uncached alias, 3 passes) 0 bad.
+# -> the scan-out is wrong, not the memory: PIO stalls on an empty FIFO and stays late (the line-start IRQ is already pending).
+# Line ring in SRAM (8 lines, 2 more DMA channels copying 7 lines ahead, 1 MHz paced dummy blocks in the blanking):
+#  - first build: the data list had no rewind block -> control channel ran into the ring, chain stopped, board reset on rgbpanel.init(pclk) restart
+#  - fixed: the chain loops, restarts at 12/10/15 MHz work, but the stalls stay (~300 per 30 s, one per poll):
+#    one mid-line stall (line 439, 207 words left), then the PIO keeps stalling through the blanking: it is a line late.
+# Working hypothesis (not proven): the DMA engine's read port is in-order, so the fill channel's slow PSRAM reads also hold
+# up the data channel's SRAM reads; the ring then does not decouple the panel from the QMI latency.
+
+# 2026-11-20 hypothesis test, release firmware v0.1.7 back on the board (sha256 8290d148): 240x240 from SRAM, 150 MHz, PSRAM heap.
+# Underruns in 20 s windows (polled every 50 ms, so at most ~400), while a second DMA channel copies 16 KiB blocks in a loop:
+#   idle                    0 in 1155 frames
+#   DMA PSRAM->SRAM       401 in 1154 frames (26669 copies)
+#   DMA SRAM->SRAM          0 in 1155 frames (351335 copies)
+#   DMA PSRAM->SRAM again 401 in 1154 frames
+#   XIP stream (STREAM_ADDR/CTR, DMA from XIP_AUX paced by DREQ_XIP_STREAM, data verified): 399 in 1155 frames, 10.4 MB/s
+#   idle again              0
+# The CPU using the PSRAM heap (Python loop) does not disturb the panel; any DMA access to XIP/PSRAM, even through the
+# stream FIFO, does. -> the panel's DMA must not touch XIP during the active lines: copy with a CPU core, or keep the
+# 480x480 framebuffer in SRAM.
+
+# 2026-11-20 15:54:10 how long does a PSRAM DMA access hold up the panel channel? v0.1.7, 240x240 (x2) from SRAM, sys 150 MHz (PSRAM 75 MHz),
+# a DMA channel copying PSRAM->SRAM in a loop, 20 s per PCLK; x2 FIFO covers 32/PCLK, a 480x480 (x1) FIFO 16/PCLK
+pclk 15.0 MHz  fifo 2.1 us  x1-equivalent pclk 7.50 MHz  underruns 401 / 400 polls  frames 1154  copies 26483
+pclk  7.5 MHz  fifo 4.3 us  x1-equivalent pclk 3.75 MHz  underruns 0 / 399 polls  frames 578  copies 26523
+pclk  5.0 MHz  fifo 6.4 us  x1-equivalent pclk 2.50 MHz  underruns 0 / 400 polls  frames 385  copies 26479
+pclk  3.0 MHz  fifo 10.7 us  x1-equivalent pclk 1.50 MHz  underruns 0 / 400 polls  frames 231  copies 26600
+pclk 15.0 MHz  fifo 2.1 us  x1-equivalent pclk 7.50 MHz  underruns 401 / 400 polls  frames 1155  copies 26481
+# result: the holds are between 2.1 and 4.3 us; a clean 480x480 scan-out with DMA reading PSRAM needs PCLK <= ~3.75 MHz (~14 fps) at 150 MHz
+
+# 2026-11-20 16:01:27 core1 (a _thread running a viper loop) copying 960-byte lines PSRAM -> 8-line SRAM ring, 10 s, panel 240x240 from SRAM:
+# v0.1.7 at 150 MHz (PSRAM 75 MHz):
+idle           underruns 0 in 577 frames, core1 lines 0 -> 0.0 MB/s (0% of a 57.7 Hz 480x480 scan-out)
+core1 copying  underruns 0 in 578 frames, core1 lines 131630 -> 12.6 MB/s (48% of a 57.7 Hz 480x480 scan-out)
+idle again     underruns 0 in 577 frames, core1 lines 0 -> 0.0 MB/s (0% of a 57.7 Hz 480x480 scan-out)
+idle           underruns 0 in 577 frames, core1 lines 0 -> 0.0 MB/s (0% of a 57.7 Hz 480x480 scan-out)
+core1 cached   underruns 0 in 578 frames, core1 lines 128446 -> 12.3 MB/s (46% of a 57.7 Hz 480x480 scan-out)
+core1 uncached underruns 0 in 577 frames, core1 lines 133812 -> 12.8 MB/s (48% of a 57.7 Hz 480x480 scan-out)
+idle again     underruns 0 in 577 frames, core1 lines 0 -> 0.0 MB/s (0% of a 57.7 Hz 480x480 scan-out)
+# trial dist/WAVESHARE_RP2350_TOUCH_LCD_4-TRIAL240S2-v0.1.7-dirty.uf2 (sha256 b8b2ae7f), scale 2 at 240 MHz (PSRAM 120 MHz):
+idle           underruns 0 in 577 frames, core1 lines 0 -> 0.0 MB/s (0% of a 57.7 Hz 480x480 scan-out)
+core1 cached   underruns 0 in 577 frames, core1 lines 193414 -> 18.6 MB/s (70% of a 57.7 Hz 480x480 scan-out)
+core1 uncached underruns 0 in 577 frames, core1 lines 205769 -> 19.8 MB/s (74% of a 57.7 Hz 480x480 scan-out)
+idle again     underruns 0 in 578 frames, core1 lines 0 -> 0.0 MB/s (0% of a 57.7 Hz 480x480 scan-out)
+# result: the CPU reading PSRAM never disturbs the panel (0 underruns); one core copies ~20 MB/s at 240 MHz,
+# 74% of a 57.7 Hz 480x480 scan-out (26.6 MB/s): enough for ~40 Hz with core1 nearly always busy
+
+# 2026-11-20 16:15:24 option C: core1 copier (C, from SRAM) + 8-line SRAM ring, 480x480, PCLK 10 MHz, sys 240 MHz; patches/micropython/0001-rp2-board-code-on-core1.patch
+# 20 s idle: 38.50 fps, 0 underruns, 770 frames copied, 0 late lines. Owner's photo of the grid: clean (no stray pixels, no shift);
+# the picture is rotated 180 deg with the USB-C at the bottom right (owner): to check against 240x240.
+# soft reset with the copier running hung the board (core1 forced off by mp_thread_deinit in the middle of PSRAM reads?); owner pressed RST.
+# fixed by stopping the copier in MICROPY_BOARD_START_SOFT_RESET: 3 soft resets in a row OK, copier restarted each time.
+# late lines (copier behind the panel: the panel shows the line 8 above) with core0 busy, 5 s each:
+idle (sleep)                 frames 192  late lines 0 (0.0% of lines)  underruns 0
+python loop                  frames 192  late lines 0 (0.0% of lines)  underruns 0
+core0 writes PSRAM 1 MB      frames 48  late lines 21270 (93.7% of lines)  underruns 0
+core0 reads PSRAM 1 MB       frames 195  late lines 0 (0.0% of lines)  underruns 0
+core0 writes 4 KB (cache)    frames 193  late lines 8123 (8.9% of lines)  underruns 0
+# result: core0 writing PSRAM starves the copier (LVGL drawing into a PSRAM framebuffer would do this on every large redraw)
+
+# 2026-11-20 16:53:35 option B (owner's choice after C): 480x480 framebuffer in SRAM, taken from the end of the SRAM heap area before gc_init
+# (patches/micropython/0001-rp2-board-sram-heap-hook.patch, MICROPY_BOARD_SRAM_HEAP); GC heap all in PSRAM; no copier, core1 free; one buffer at 480x480.
+# uf2 sha256 509950fb...; static RAM 41 756 B; MicroPython reports 0fd6c573ea-dirty (the patched tree)
+freq 240000000, WIDTH 480 SCALE 1, GC total 8 215 616, free 8 211 264; 20 s pattern: 57.70 fps, 0 underruns
+# underruns with core0 busy, 5 s each (the sticky FIFO-stall flag read once per window):
+idle (sleep)                 frames 289  underruns 0
+python loop                  frames 289  underruns 0
+core0 writes PSRAM 1 MB      frames 291  underruns 0
+core0 reads PSRAM 1 MB       frames 291  underruns 0
+core0 writes 4 KB (cache)    frames 289  underruns 0
+# tests/hil/t03_panel.py:
+bars drawn in 2447 ms
+frames 289 in 5000 ms -> 57.80 fps (nominal 57.73)
+underruns during 5 s: 0
+wrote 200 KB in 1133 ms, frames 65 (expected ~65), underruns 0
+rp2.StateMachine(0) on PIO0: ok
+underruns total: 0 frames: 4869
+mem_free: 8200512
+# Ctrl-C contract, display_driver at 480x480, one buffer (2 refused at scale 1): sleep, stdin, cb: main 60/60 each, FPS 28.7/28.3, RESULT OK
+#   -> docs/log/ctrlc-contract-RP2350-psram480-{sleep,stdin,cb}.txt
+# 2026-11-20 17:12:50 orientation: the grid looks rotated 180 deg with the USB-C at the bottom right, the same on v0.1.7 (240x240); Waveshare's photos have the USB-C at the top left, where the picture is upright: nothing to change (owner).
+
+# 2026-11-20 17:15:26 option B back on the board (sha256 509950fb); touch alignment at 480x480 (gt911 scale 1), owner tapping 5 LVGL buttons (90x90: corners, centre):
+display 480 480 buffers 1 touch scale 1
+tap 1..5
+target 1 clicked at (40, 19)
+target 2 clicked at (458, 40)
+target 3 clicked at (42, 435)
+target 4 clicked at (450, 428)
+target 5 clicked at (242, 227)
+targets hit: [1, 2, 3, 4, 5]
+# result: all 5 hit, no press on the background
+# 2026-11-20 17:20:43 Ctrl-C contract, touch (owner touching from 10 s after start): main 60/60, FPS 28.3/28.7, RESULT OK -> docs/log/ctrlc-contract-RP2350-psram480-touch.txt

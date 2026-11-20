@@ -217,6 +217,13 @@ MAKE_ARGS=(BOARD_DIR="$BOARD_DIR" BUILD="$BUILD")
 [[ -n $VARIANT ]] && MAKE_ARGS+=(BOARD_VARIANT="$VARIANT")
 [[ -n $FROZEN ]] && MAKE_ARGS+=(FROZEN_MANIFEST="$FROZEN")
 export LVMP_DIR
+# With the patches of patches/micropython in place the tree is not the release:
+# name it, instead of MicroPython's automatic "<hash>-dirty".
+if compgen -G "$REPO/patches/micropython/*.patch" >/dev/null; then
+    export MICROPY_GIT_TAG="$MPY_REF-patched"
+    MICROPY_GIT_HASH=$(git -C "$MPY" rev-parse --short=10 HEAD)
+    export MICROPY_GIT_HASH
+fi
 
 log "submodules"
 make -C "$MPY/ports/$PORT" "${MAKE_ARGS[@]}" submodules >/dev/null
