@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
-# A menu of the apps installed by LVGL MPY Studio, for the microcontroller boards: one button per
-# app; a tap starts it, the board's user button comes back to the menu.
+# A menu of the apps installed by Copper and Code Studio, for the microcontroller boards: one
+# button per app; a tap starts it, the board's user button comes back to the menu.
 #
 #   /flash/main.py:        import launcher; launcher.main()
 #   /flash/launcher.json:  {"title": "Games", "apps": [{"name": "Snake", "dir": "app_1e39a0a11344"}, ...]}
@@ -119,7 +119,7 @@ def menu():
         l.center()
         b.add_event_cb(lambda e, d=app["dir"]: _start(d), lv.EVENT.CLICKED, None)
     if not apps:
-        hint.set_text("No apps installed: upload them from LVGL MPY Studio.")
+        hint.set_text("No apps installed: upload them from Copper and Code Studio.")
     lv.screen_load(scr)
     display_driver.start()
 
