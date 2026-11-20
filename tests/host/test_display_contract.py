@@ -1,5 +1,5 @@
 # Host test: the names of the display_driver contract (docs/display-driver.md) in the
-# unix stand-in, as tests and LVGL MPY Studio rely on them.
+# unix stand-in, as tests and Copper and Code Studio rely on them.
 #   cd tests/host && micropython test_display_contract.py
 # Also runs on a board (it then checks the real driver; serve() is skipped there).
 import sys

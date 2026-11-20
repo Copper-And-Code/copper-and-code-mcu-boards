@@ -5,7 +5,7 @@ Every board has a frozen `display_driver.py`:
 - `python/stm32/display_driver.py` on the STM32H743 boards;
 - `python/esp32/display_driver.py` on the ESP32-S3.
 
-The names below are what an application, a test or LVGL MPY Studio may rely on, on
+The names below are what an application, a test or Copper and Code Studio may rely on, on
 every board. Everything else in the drivers is internal and may change between
 releases.
 
