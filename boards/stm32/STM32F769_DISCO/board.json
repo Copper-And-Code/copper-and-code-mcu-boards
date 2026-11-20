@@ -1,0 +1,11 @@
+{
+    "deploy": [],
+    "docs": "",
+    "features": [],
+    "images": [],
+    "mcu": "stm32f7",
+    "product": "STM32F769I-DISCO with the MB1166 display",
+    "thumbnail": "",
+    "url": "",
+    "vendor": "ST Microelectronics"
+}

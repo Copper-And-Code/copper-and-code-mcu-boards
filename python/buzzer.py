@@ -6,7 +6,8 @@
 #   buzzer.tone(880)         # until buzzer.off()
 #
 # RP2350-Touch-LCD-4: passive buzzer on GPIO1 (PWM). STM32 boards: the "buzzer"
-# pin of stm32_board.CONFIG, none so far. ESP32-4848S040: the speaker, through audio.py.
+# pin of stm32_board.CONFIG, none so far, or its "audio" (the STM32F769I-DISCO's codec,
+# through audio.py). ESP32-4848S040: the speaker, through audio.py.
 
 import sys
 
@@ -21,6 +22,8 @@ else:
         import stm32_board
 
         PIN = stm32_board.CONFIG.get("buzzer")
+        if stm32_board.CONFIG.get("audio"):
+            import audio as _audio
     except ImportError:
         pass
 

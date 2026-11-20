@@ -1,21 +1,30 @@
-# Per-board settings of the STM32H743 boards that are not in the C board files:
-# the GT911 touch wiring (from docs/stm32-inventory.md, the old boards.py).
+# Per-board settings of the STM32 boards that are not in the C board files: the
+# touch wiring (from docs/stm32-inventory.md, the old boards.py) and the default panel.
 #
 #   import stm32_board
-#   stm32_board.NAME          # "STM32H7_CORE V1.3", ...
-#   t = stm32_board.touch()   # gt911.GT911 on the board's touch bus
+#   stm32_board.NAME          # "STM32H7_CORE V1.3", "STM32F769I-DISCO", ...
+#   t = stm32_board.touch()   # the board's touch controller (gt911.GT911, ft6x06.FT6x06)
 #
-# The panel is chosen in /flash/display_config.py (PANEL = "RGB043M2"),
-# default IPS1024x600; see panels.py.
+# The panel is chosen in /flash/display_config.py (PANEL = "RGB043M2"); without it,
+# the board's own ("MB1166" on the STM32F769I-DISCO) or IPS1024x600; see panels.py.
 
 import os
 
-# touch: (rst, int, bus); bus is an int for hardware I2C, else (scl, sda) for SoftI2C.
+# touch: (rst, int, bus) of a GT911; bus is an int for hardware I2C, else (scl, sda) for
+# SoftI2C. ("ft6x06", bus, options): an FT6x06 on hardware I2C, without reset or
+# interrupt lines (the STM32F769I-DISCO's shares the panel's reset, which st_ltdc pulses).
+# panel: the default when /flash/display_config.py names none.
 BOARDS = {
     "DEV190806042": {"touch": ("I8", "H7", ("H6", "G7"))},
     "FK743M5-XIH6": {"touch": ("I10", "I11", ("G3", "G7"))},
     "STM32H7_CORE V1.0": {"touch": ("H7", "E3", 4)},
     "STM32H7_CORE V1.3": {"touch": ("B14", "H7", ("B12", "B13"))},
+    # MB1166 in landscape: x = raw y, y = 479 - raw x (docs/log/f769-phase3-2026-11-20.txt),
+    # then scale and offset fitted to 21 touches (docs/log/f769-phase5-2026-11-20.txt).
+    # audio: the WM8994 codec through audio.py (buzzer.py uses it).
+    "STM32F769I-DISCO": {"panel": "MB1166", "audio": True,
+                         "touch": ("ft6x06", 4, {"swap_xy": True, "invert_y": True,
+                                                 "cal": (1.008, -19.2, 1.0925, -7.3)})},
 }
 
 # The GT911 is rated for 400 kHz. The port's hardware I2C timings are for a 54 MHz
@@ -42,7 +51,7 @@ def panel():
 
         return PANEL
     except ImportError:
-        return "IPS1024x600"
+        return CONFIG.get("panel", "IPS1024x600")
 
 
 def touch_i2c():
@@ -59,10 +68,19 @@ def touch_i2c():
 
 
 def touch(**kw):
-    """The board's GT911 (reset, address 0x5D); OSError if it does not answer."""
-    import gt911
-
+    """The board's touch controller: a GT911 (reset, address 0x5D) or an FT6x06;
+    OSError if it does not answer."""
     if "touch" not in CONFIG:
         raise OSError("no touch wiring known for %r" % os.uname().machine)
+    if CONFIG["touch"][0] == "ft6x06":
+        import ft6x06
+        from machine import I2C
+
+        _, bus, options = CONFIG["touch"]
+        options = dict(options)
+        options.update(kw)
+        return ft6x06.FT6x06(i2c=I2C(bus, freq=400_000), **options)
+    import gt911
+
     rst, irq, _ = CONFIG["touch"]
     return gt911.GT911(i2c=touch_i2c(), rst=rst, irq=irq, **kw)

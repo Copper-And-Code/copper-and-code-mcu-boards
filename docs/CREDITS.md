@@ -24,6 +24,15 @@
   ESP32-4848S040 panel (`modules/esp_rgb/st7701_init.h`, re-encoded as data, with a
   software reset added and the display not inverted); licence in
   `modules/esp_rgb/LICENSE-HomeDing.txt`. Board pinout from the HomeDing board page.
+- **STMicroelectronics** (BSD 3-Clause) — the OTM8009A panel driver of the
+  STM32F769I-DISCO's MB1166 display, `modules/st_ltdc/otm8009a.c` and `.h` from
+  `STMicroelectronics/stm32-otm8009a` v1.0.5 (licence in the files' headers; the weak
+  `OTM8009A_IO_Delay` stub removed, `st_ltdc.c` provides it). The DSI, LTDC and SDRAM
+  settings follow ST's `32f769idiscovery-bsp`; the board's pin names come from ST's
+  `STM32_open_pin_data` and Zephyr's `boards/st/stm32f769i_disco` (Apache-2.0, as data).
+  The WM8994 codec's set-up for the headphone output (`python/stm32/audio.py`, as register
+  writes) and the SAI frame and clocks (`modules/st_audio/st_audio.c`) follow ST's
+  `wm8994.c` (BSD 3-Clause) and the board's BSP audio driver.
 
 ## Font of the terminal
 
