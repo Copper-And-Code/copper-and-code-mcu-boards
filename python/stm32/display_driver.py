@@ -1,15 +1,17 @@
-# LVGL display driver for the STM32H743 boards (LTDC panel + GT911 touch).
+# LVGL display driver for the STM32 boards (LTDC panel, or the STM32F769I-DISCO's DSI
+# panel, + GT911 or FT6x06 touch).
 #
 # `import display_driver` is all an application needs, as on the RP2350 board:
 # it starts the panel (st_ltdc), LVGL on its framebuffers and a periodic
 # lv.timer_handler(), so the application has no main loop.
 #
-# Panel: PANEL in /flash/display_config.py (default IPS1024x600, see panels.py).
+# Panel: PANEL in /flash/display_config.py (default the board's, see stm32_board.py,
+# else IPS1024x600; panels.py).
 # LVGL renders in DIRECT mode into the two framebuffers (outside the GC heap);
 # the flush (in C) shows the new one at vertical blanking: no tearing. LVGL
 # refreshes every REFR_PERIOD_MS (16 ms) instead of the binding's 33 ms.
-# The GT911 is registered as LVGL pointer device (touch, indev); its pins come
-# from stm32_board.py.
+# The touch controller is registered as LVGL pointer device (touch, indev); its
+# wiring comes from stm32_board.py.
 #
 # Importing again is safe. After a soft reset the panel keeps scanning out the
 # last image (st_ltdc.init() with the same timings does not restart it) and the
@@ -53,7 +55,8 @@ if disp is None:
     disp = lv.display_get_default()
     disp.get_refr_timer().set_period(REFR_PERIOD_MS)
 
-# Touch: GT911 reports panel pixels (its configuration holds the panel size).
+# Touch: in display pixels (the GT911's configuration holds the panel size; the
+# FT6x06's orientation is in stm32_board.py).
 try:
     touch = stm32_board.touch()
     indev = touch.lv_register()
@@ -126,7 +129,8 @@ def _tick(_):
 
 def backlight(percent=None):
     """Set the backlight (0-100) or, with no argument, read it. On/off on the
-    STM32 boards for now (GPIO), so any percent above 0 is full brightness."""
+    STM32H743 boards for now (GPIO), so any percent above 0 is full brightness; on
+    the STM32F769I-DISCO the panel's own brightness (DCS command)."""
     if percent is None:
         return st_ltdc.backlight()
     st_ltdc.backlight(percent)

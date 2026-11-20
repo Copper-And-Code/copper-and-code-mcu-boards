@@ -13,6 +13,22 @@
 # the values below give the panels the same PCPOL as the old driver did on hardware.
 
 PANELS = {
+    # The STM32F769I-DISCO's MB1166 display: 4" 800x480, OTM8009A on MIPI-DSI (the LTDC
+    # feeds the DSI host, see modules/st_ltdc). Timings and clock of ST's BSP: PLLSAI N 384,
+    # R 7, DIVR 2 = 27.429 MHz; total 870 x 512, 61.6 Hz. st_ltdc sets the polarities the
+    # DSI needs itself (11: HS and VS active high, DE active low, clock inverted).
+    "MB1166": {
+        "width": 800,
+        "height": 480,
+        "hsync": 2,
+        "hbp": 34,
+        "hfp": 34,
+        "vsync": 1,
+        "vbp": 15,
+        "vfp": 16,
+        "polarity": 11,
+        "pclk_hz": 27_429_000,
+    },
     # 7" IPS 1024x600: total 1344 x 638, 58.3 Hz at 50 MHz.
     "IPS1024x600": {
         "width": 1024,

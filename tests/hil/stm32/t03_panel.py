@@ -1,6 +1,6 @@
 # Phase 3 panel test for the STM32H743 boards (st_ltdc, no LVGL needed).
 #   mpremote run tests/hil/stm32/t03_panel.py
-# Panel: PANEL in /display_config.py on the board (default "IPS1024x600"), e.g.
+# Panel: PANEL in /display_config.py on the board (default the board's, see stm32_board.py), e.g.
 #   mpremote exec "open('/flash/display_config.py','w').write('PANEL = \"RGB043M2\"\n')"
 #
 # Each pattern stays on screen for HOLD_S seconds; the console says which one.
@@ -26,10 +26,9 @@ import st_ltdc
 
 HOLD_S = 4
 
-try:
-    from display_config import PANEL
-except ImportError:
-    PANEL = "IPS1024x600"
+import stm32_board
+
+PANEL = stm32_board.panel()  # /display_config.py, else the board's, else IPS1024x600
 
 RED, GREEN, BLUE, WHITE, BLACK, YELLOW = 0xF800, 0x07E0, 0x001F, 0xFFFF, 0x0000, 0xFFE0
 

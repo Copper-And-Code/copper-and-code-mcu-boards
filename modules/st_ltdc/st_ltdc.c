@@ -1,5 +1,12 @@
-// st_ltdc: LTDC + DMA2D display driver for the STM32H743 boards of this repo,
-// for parallel RGB panels whose timings are given at run time (python/panels.py).
+// st_ltdc: LTDC + DMA2D display driver for the STM32 boards of this repo: parallel
+// RGB panels on the STM32H743 boards, and on the STM32F769I-DISCO a MIPI-DSI panel
+// (MICROPY_HW_LTDC_DSI: the LTDC feeds the DSI host in video mode, the panel's
+// controller, an OTM8009A, is set up with DCS commands). Timings are given at run
+// time (python/panels.py).
+//
+// STM32F7: the LTDC clock comes from PLLSAI instead of PLL3, and the framebuffer zone
+// has no MPU region of its own (the F7 has 8, all used by MicroPython): the D-cache,
+// 16 KB, is cleaned (fb_sync) before the LTDC or the DMA2D reads what the CPU wrote.
 //
 // Memory: the framebuffers live in a zone at the top of the SDRAM that the board
 // keeps out of the GC heap (MICROPY_HW_LTDC_FB_BYTES, see the boards'
@@ -40,7 +47,15 @@ void mp_lv_deinit_gc(void);
 #define ST_LTDC_LVGL (0)
 #endif
 
-#if defined(MICROPY_HW_LTDC_PINS)
+#if defined(MICROPY_HW_LTDC_PINS) || defined(MICROPY_HW_LTDC_DSI)
+#define ST_LTDC_ENABLED (1)
+#endif
+
+#if ST_LTDC_ENABLED
+
+#if defined(MICROPY_HW_LTDC_DSI)
+#include "otm8009a.h"
+#endif
 
 #ifndef MICROPY_HW_LTDC_BL_ACTIVE
 #define MICROPY_HW_LTDC_BL_ACTIVE (1)
@@ -55,7 +70,9 @@ typedef struct _st_ltdc_pin_t {
 
 #define ST_LTDC_PIN(port, pin, af) { (port), (pin), (af) }
 
+#if defined(MICROPY_HW_LTDC_PINS)
 static const st_ltdc_pin_t st_ltdc_pins[] = { MICROPY_HW_LTDC_PINS };
+#endif
 
 // Polarity bits of init(polarity=...), as in the old driver and python/panels.py.
 #define POL_HS (1 << 0)   // HSYNC active high
@@ -84,7 +101,7 @@ static struct {
     uint16_t hsync, hbp, hfp, vsync, vbp, vfp;
     uint32_t pclk_req;    // pixel clock asked for
     uint32_t pclk_hz;     // pixel clock achieved
-    uint32_t pll3_n, pll3_r;
+    uint32_t pll3_n, pll3_r;  // STM32F7: PLLSAI N and R x DIVR
     uint8_t *zone;        // MICROPY_HW_LTDC_FB_BYTES at the top of the SDRAM
     uint16_t *fb[2];
     uint8_t *pbuf[2];     // PARTIAL render buffers
@@ -134,10 +151,23 @@ static void zone_setup(void) {
         | MPU_REGION_ENABLE << MPU_RASR_ENABLE_Pos;
     // Lines of the zone may sit in the D-cache from before (write-back then).
     SCB_CleanInvalidateDCache_by_Addr((uint32_t *)z, MICROPY_HW_LTDC_FB_BYTES);
+    #if defined(STM32H7)
     uint32_t irq_state = mpu_config_start();
     mpu_config_region(MPU_REGION_LTDC, (uint32_t)z, attr);
     mpu_config_end(irq_state);
+    #else
+    (void)attr;  // no MPU region left: fb_sync() instead
+    #endif
     st.zone = z;
+}
+
+// Make what the CPU wrote to the framebuffers visible to the LTDC and the DMA2D.
+// H7: nothing to do, the zone is write-through. F7: clean the whole D-cache (16 KB,
+// a few microseconds), cheaper than cleaning a framebuffer's range line by line.
+static inline void fb_sync(void) {
+    #if !defined(STM32H7)
+    SCB_CleanDCache();
+    #endif
 }
 
 // Place fb[0], fb[1] and the PARTIAL render buffers in the zone.
@@ -163,10 +193,16 @@ static GPIO_TypeDef *gpio_port(char port) {
 }
 
 static void pins_init(void) {
+    #if defined(MICROPY_HW_LTDC_PINS)
     for (size_t i = 0; i < MP_ARRAY_SIZE(st_ltdc_pins); ++i) {
         const st_ltdc_pin_t *p = &st_ltdc_pins[i];
+        #if defined(STM32H7)
         RCC->AHB4ENR |= 1u << (p->port - 'A');
         (void)RCC->AHB4ENR;
+        #else
+        RCC->AHB1ENR |= 1u << (p->port - 'A');
+        (void)RCC->AHB1ENR;
+        #endif
         GPIO_TypeDef *g = gpio_port(p->port);
         uint32_t n = p->pin;
         g->AFR[n >> 3] = (g->AFR[n >> 3] & ~(0xfu << ((n & 7) * 4))) | ((uint32_t)p->af << ((n & 7) * 4));
@@ -175,16 +211,26 @@ static void pins_init(void) {
         g->PUPDR &= ~(3u << (n * 2));                                      // no pull
         g->MODER = (g->MODER & ~(3u << (n * 2))) | (2u << (n * 2));        // alternate function
     }
+    #endif
 }
+
+#if defined(MICROPY_HW_LTDC_DSI)
+static void dsi_brightness(mp_int_t pct);
+#endif
 
 static void backlight_set(mp_int_t pct) {
     if (pct > 100) {
         pct = 100;
     }
     st.backlight = pct;
+    #if defined(MICROPY_HW_LTDC_DSI)
+    // The panel's own brightness (DCS WRDISBV), once the DSI link is up.
+    dsi_brightness(pct);
+    #else
     // On/off for now; PWM once the polarity is confirmed on each board.
     mp_hal_pin_output(MICROPY_HW_LTDC_BL);
     mp_hal_pin_write(MICROPY_HW_LTDC_BL, (pct > 0) == MICROPY_HW_LTDC_BL_ACTIVE);
+    #endif
 }
 
 static void lcd_reset(void) {
@@ -197,6 +243,7 @@ static void lcd_reset(void) {
     #endif
 }
 
+#if defined(STM32H7)
 // PLL3 R output (the LTDC kernel clock) as close as possible to pclk_hz:
 // reference HSE / 5 = 5 MHz, VCO 192..836 MHz (wide range), N 4..512, R 1..128.
 static void pll3_set(uint32_t pclk_hz) {
@@ -253,10 +300,173 @@ static void axi_qos_for_display(void) {
     GPV->AXI_INI2_WRITE_QOS = 0x00;
 }
 
+#define pixel_clock_set pll3_set
+
+#else
+
+// STM32F7: the LTDC clock is PLLSAI's R output divided by DIVR. PLLSAI shares the main
+// PLL's input divider M: HSE / MICROPY_HW_CLK_PLLM (1 MHz on the STM32F769I-DISCO).
+// VCO 100..432 MHz, N 50..432, R 2..7, DIVR 2, 4, 8 or 16. The HAL keeps PLLSAI's
+// P and Q outputs as they are.
+static void pllsai_set(uint32_t pclk_hz) {
+    const uint32_t ref = HSE_VALUE / MICROPY_HW_CLK_PLLM;
+    static const uint32_t divr_reg[] = { RCC_PLLSAIDIVR_2, RCC_PLLSAIDIVR_4, RCC_PLLSAIDIVR_8, RCC_PLLSAIDIVR_16 };
+    uint32_t best_n = 0, best_r = 0, best_d = 0, best_err = UINT32_MAX;
+    for (uint32_t d = 0; d < 4; ++d) {
+        for (uint32_t r = 2; r <= 7; ++r) {
+            uint32_t div = r << (d + 1);
+            uint64_t n = ((uint64_t)pclk_hz * div + ref / 2) / ref;
+            if (n < 50 || n > 432) {
+                continue;
+            }
+            uint64_t vco = (uint64_t)ref * n;
+            if (vco < 100000000u || vco > 432000000u) {
+                continue;
+            }
+            uint32_t f = vco / div;
+            uint32_t err = f > pclk_hz ? f - pclk_hz : pclk_hz - f;
+            if (err < best_err) {
+                best_err = err;
+                best_n = n;
+                best_r = r;
+                best_d = d;
+            }
+        }
+    }
+    if (best_n == 0) {
+        mp_raise_ValueError(MP_ERROR_TEXT("st_ltdc: pixel clock out of range"));
+    }
+    RCC_PeriphCLKInitTypeDef clk = {0};
+    clk.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
+    clk.PLLSAI.PLLSAIN = best_n;
+    clk.PLLSAI.PLLSAIR = best_r;
+    clk.PLLSAI.PLLSAIQ = 2;
+    clk.PLLSAI.PLLSAIP = RCC_PLLSAIP_DIV2;
+    clk.PLLSAIDivR = divr_reg[best_d];
+    if (HAL_RCCEx_PeriphCLKConfig(&clk) != HAL_OK) {
+        mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("st_ltdc: PLLSAI config failed"));
+    }
+    st.pll3_n = best_n;
+    st.pll3_r = best_r << (best_d + 1);
+    st.pclk_hz = ref * best_n / st.pll3_r;
+}
+
+#define pixel_clock_set pllsai_set
+
+static void axi_qos_for_display(void) {
+}
+
+#endif
+
+#if defined(MICROPY_HW_LTDC_DSI)
+// MIPI-DSI host in video mode (HAL DSI), timings and order as in ST's
+// STM32F769I-DISCO BSP (stm32f769i_discovery_lcd.c): DSI PLL and video mode set up
+// before the LTDC, the DSI started after it, then the panel's controller.
+// The DSI carries 24-bit pixels (the LTDC expands the RGB565 framebuffer).
+static DSI_HandleTypeDef dsi;
+static DSI_VidCfgTypeDef dsi_video;
+static uint32_t dsi_lanebyte_khz;
+static bool dsi_up;
+
+#define DSI_VCHANNEL (0)
+
+// The OTM8009A driver's I/O (modules/st_ltdc/otm8009a.c, from ST): a DCS command
+// with NbrParams parameters; the command is pParams[NbrParams] for a long write,
+// pParams[0] (with its one parameter in pParams[1]) for a short one.
+void DSI_IO_WriteCmd(uint32_t NbrParams, uint8_t *pParams) {
+    if (NbrParams <= 1) {
+        HAL_DSI_ShortWrite(&dsi, DSI_VCHANNEL, DSI_DCS_SHORT_PKT_WRITE_P1, pParams[0], pParams[1]);
+    } else {
+        HAL_DSI_LongWrite(&dsi, DSI_VCHANNEL, DSI_DCS_LONG_PKT_WRITE, NbrParams, pParams[NbrParams], pParams);
+    }
+}
+
+void OTM8009A_IO_Delay(uint32_t Delay) {
+    mp_hal_delay_ms(Delay);
+}
+
+static void dsi_brightness(mp_int_t pct) {
+    if (dsi_up) {
+        HAL_DSI_ShortWrite(&dsi, DSI_VCHANNEL, DSI_DCS_SHORT_PKT_WRITE_P1, 0x51, pct * 255 / 100);  // WRDISBV
+    }
+}
+
+// Before the LTDC: the DSI PLL, the lanes and the video mode from st's timings.
+static void dsi_setup(void) {
+    __HAL_RCC_DSI_CLK_ENABLE();
+    __HAL_RCC_DSI_FORCE_RESET();
+    __HAL_RCC_DSI_RELEASE_RESET();
+    dsi.Instance = DSI;
+    HAL_DSI_DeInit(&dsi);
+    DSI_PLLInitTypeDef pll = {
+        .PLLNDIV = MICROPY_HW_LTDC_DSI_PLL_NDIV,
+        .PLLIDF = MICROPY_HW_LTDC_DSI_PLL_IDF,
+        .PLLODF = MICROPY_HW_LTDC_DSI_PLL_ODF,
+    };
+    // Lane byte clock: HSE / IDF x 2 x NDIV / 2^ODF / 2 / 8 (62.5 MHz on the F769I-DISCO).
+    dsi_lanebyte_khz = HSE_VALUE / 1000 / MICROPY_HW_LTDC_DSI_PLL_IDF * 2 * MICROPY_HW_LTDC_DSI_PLL_NDIV
+        / (1u << MICROPY_HW_LTDC_DSI_PLL_ODF) / 2 / 8;
+    dsi.Init.NumberOfLanes = MICROPY_HW_LTDC_DSI_LANES;
+    dsi.Init.TXEscapeCkdiv = dsi_lanebyte_khz / 15620;  // escape clock just under 20 MHz
+    if (HAL_DSI_Init(&dsi, &pll) != HAL_OK) {
+        mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("st_ltdc: DSI init failed (PLL)"));
+    }
+    uint32_t pclk_khz = st.pclk_hz / 1000;
+    memset(&dsi_video, 0, sizeof(dsi_video));
+    dsi_video.VirtualChannelID = DSI_VCHANNEL;
+    dsi_video.ColorCoding = DSI_RGB888;
+    dsi_video.VSPolarity = DSI_VSYNC_ACTIVE_HIGH;
+    dsi_video.HSPolarity = DSI_HSYNC_ACTIVE_HIGH;
+    dsi_video.DEPolarity = DSI_DATA_ENABLE_ACTIVE_HIGH;
+    dsi_video.Mode = DSI_VID_MODE_BURST;
+    dsi_video.NullPacketSize = 0xfff;
+    dsi_video.NumberOfChunks = 0;
+    dsi_video.PacketSize = st.width;
+    // Horizontal timings in lane byte clock periods, vertical ones in lines.
+    dsi_video.HorizontalSyncActive = (uint32_t)st.hsync * dsi_lanebyte_khz / pclk_khz;
+    dsi_video.HorizontalBackPorch = (uint32_t)st.hbp * dsi_lanebyte_khz / pclk_khz;
+    dsi_video.HorizontalLine = (uint32_t)(st.width + st.hsync + st.hbp + st.hfp) * dsi_lanebyte_khz / pclk_khz;
+    dsi_video.VerticalSyncActive = st.vsync;
+    dsi_video.VerticalBackPorch = st.vbp;
+    dsi_video.VerticalFrontPorch = st.vfp;
+    dsi_video.VerticalActive = st.height;
+    dsi_video.LPCommandEnable = DSI_LP_COMMAND_ENABLE;
+    dsi_video.LPLargestPacketSize = 16;
+    dsi_video.LPVACTLargestPacketSize = 0;
+    dsi_video.LPHorizontalFrontPorchEnable = DSI_LP_HFP_ENABLE;
+    dsi_video.LPHorizontalBackPorchEnable = DSI_LP_HBP_ENABLE;
+    dsi_video.LPVerticalActiveEnable = DSI_LP_VACT_ENABLE;
+    dsi_video.LPVerticalFrontPorchEnable = DSI_LP_VFP_ENABLE;
+    dsi_video.LPVerticalBackPorchEnable = DSI_LP_VBP_ENABLE;
+    dsi_video.LPVerticalSyncActiveEnable = DSI_LP_VSYNC_ENABLE;
+    if (HAL_DSI_ConfigVideoMode(&dsi, &dsi_video) != HAL_OK) {
+        mp_raise_msg(&mp_type_OSError, MP_ERROR_TEXT("st_ltdc: DSI video mode failed"));
+    }
+}
+
+// After the LTDC: start the link, then set up the panel (landscape when wider than tall).
+static void dsi_start(void) {
+    HAL_DSI_Start(&dsi);
+    dsi_up = true;
+    OTM8009A_Init(OTM8009A_FORMAT_RGB888,
+        st.width > st.height ? OTM8009A_ORIENTATION_LANDSCAPE : OTM8009A_ORIENTATION_PORTRAIT);
+}
+
+static void dsi_stop(void) {
+    if (dsi_up) {
+        HAL_DSI_Stop(&dsi);
+        dsi_up = false;
+    }
+}
+#endif
+
 static void scanout_stop(void) {
     if (!st.running) {
         return;
     }
+    #if defined(MICROPY_HW_LTDC_DSI)
+    dsi_stop();
+    #endif
     LTDC->IER = 0;
     NVIC_DisableIRQ(LTDC_IRQn);
     NVIC_DisableIRQ(LTDC_ER_IRQn);
@@ -271,10 +481,22 @@ static void scanout_start(void) {
     const uint32_t aaw = ahbp + st.width;         // accumulated active width
     const uint32_t aah = avbp + st.height;
 
-    pll3_set(st.pclk_req);
+    pixel_clock_set(st.pclk_req);
+    #if defined(MICROPY_HW_LTDC_DSI)
+    // The DSI host takes HSYNC, VSYNC and DE active high; for the LTDC that means
+    // HS and VS active high, DE active low (HAL_LTDC_StructInitFromVideoConfig), and
+    // ST's BSP inverts the pixel clock.
+    st.polarity = POL_HS | POL_VS | POL_PC;
+    #endif
     __HAL_RCC_LTDC_CLK_ENABLE();
     __HAL_RCC_LTDC_FORCE_RESET();
     __HAL_RCC_LTDC_RELEASE_RESET();
+    #if defined(MICROPY_HW_LTDC_DSI)
+    // With the LTDC clocked, as ST's BSP_LCD_MspInit() does before the DSI: a write to
+    // the DSI host's registers (DSI_CR) hung the bus for good when PLLSAI had just been
+    // set up and the LTDC's clock was still off (2026-11-20, STM32F769I-DISCO).
+    dsi_setup();
+    #endif
     pins_init();
     axi_qos_for_display();
 
@@ -295,7 +517,14 @@ static void scanout_start(void) {
     LTDC_Layer1->DCCR = 0;
     LTDC_Layer1->BFCR = (4 << 8) | 5;  // blending with the constant alpha
     LTDC_Layer1->CFBAR = (uint32_t)st.fb[st.shown];
+    // Line length in bytes plus 7 on the H7 (RM0433), plus 3 on the F7 (RM0410): with
+    // +7 on the F7 every line starts 2 pixels later than the one before (seen as slanted
+    // bars on the STM32F769I-DISCO).
+    #if defined(STM32H7)
     LTDC_Layer1->CFBLR = ((uint32_t)(st.width * BPP) << 16) | (st.width * BPP + 7);
+    #else
+    LTDC_Layer1->CFBLR = ((uint32_t)(st.width * BPP) << 16) | (st.width * BPP + 3);
+    #endif
     LTDC_Layer1->CFBLNR = st.height;
     LTDC_Layer1->CR = LTDC_LxCR_LEN;
     LTDC->SRCR = LTDC_SRCR_IMR;
@@ -314,6 +543,9 @@ static void scanout_start(void) {
 
     LTDC->GCR |= LTDC_GCR_LTDCEN;
     st.running = true;
+    #if defined(MICROPY_HW_LTDC_DSI)
+    dsi_start();
+    #endif
 }
 
 void LTDC_IRQHandler(void) {
@@ -336,6 +568,7 @@ void LTDC_ER_IRQHandler(void) {
 
 // Ask the LTDC to show framebuffer i from the next vertical blanking.
 static void request_buffer(uint32_t i) {
+    fb_sync();
     __DSB();  // pixel writes before the address change
     LTDC_Layer1->CFBAR = (uint32_t)st.fb[i];
     LTDC->SRCR = LTDC_SRCR_VBR;
@@ -372,6 +605,7 @@ static void dma2d_wait_idle(void) {
 // DMA2D memory-to-memory copy of a w x h RGB565 block into fb[shown] at (x, y).
 static void dma2d_copy(const uint8_t *src, uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
     __HAL_RCC_DMA2D_CLK_ENABLE();
+    fb_sync();
     __DSB();
     DMA2D->CR = 0;  // memory-to-memory, no pixel format conversion
     DMA2D->FGMAR = (uint32_t)src;
@@ -474,6 +708,7 @@ static mp_obj_t st_ltdc_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
         zone_layout(0);
         memset(st.fb[0], 0, fb_bytes());
         memset(st.fb[1], 0, fb_bytes());
+        fb_sync();
         st.shown = 0;
         st.frames = 0;
         st.underruns = 0;
@@ -566,6 +801,7 @@ static mp_obj_t st_ltdc_wait_vsync(size_t n_args, const mp_obj_t *args) {
     if (!st.running) {
         return mp_const_false;
     }
+    fb_sync();  // what Python wrote to a framebuffer shows from this frame
     uint32_t f0 = st.frames;
     uint32_t t0 = mp_hal_ticks_ms();
     while (st.frames == f0) {
@@ -609,6 +845,8 @@ static void lv_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
         } else if (st.buffers == 2 && lv_display_flush_is_last(disp)) {
             request_buffer((uint16_t *)px_map == st.fb[1] ? 1 : 0);
             return;  // finished by lv_flush_wait_cb
+        } else {
+            fb_sync();  // one buffer, scanned out while drawn into
         }
     }
     lv_display_flush_ready(disp);
@@ -684,6 +922,10 @@ static mp_obj_t st_ltdc_info(void) {
     dict_store(d, MP_QSTR_bus_errors, mp_obj_new_int_from_uint(st.bus_errors));
     dict_store(d, MP_QSTR_reload_timeouts, mp_obj_new_int_from_uint(st.reload_timeouts));
     dict_store(d, MP_QSTR_partial, mp_obj_new_bool(st.partial));
+    #if defined(MICROPY_HW_LTDC_DSI)
+    dict_store(d, MP_QSTR_dsi_lanebyte_khz, mp_obj_new_int_from_uint(dsi_lanebyte_khz));
+    dict_store(d, MP_QSTR_dsi_running, mp_obj_new_bool(dsi_up));
+    #endif
     dict_store(d, MP_QSTR_zone_addr, mp_obj_new_int_from_uint((uint32_t)zone_start()));
     dict_store(d, MP_QSTR_zone_bytes, mp_obj_new_int_from_uint(MICROPY_HW_LTDC_FB_BYTES));
     if (st.zone) {
@@ -728,7 +970,7 @@ const mp_obj_module_t st_ltdc_user_cmodule = {
 
 MP_REGISTER_MODULE(MP_QSTR_st_ltdc, st_ltdc_user_cmodule);
 
-#endif // defined(MICROPY_HW_LTDC_PINS)
+#endif // ST_LTDC_ENABLED
 
 // MICROPY_BOARD_END_SOFT_RESET of the boards (see their mpconfigboard.h).
 // The scan-out keeps running on the framebuffers, which are outside the GC
@@ -736,7 +978,7 @@ MP_REGISTER_MODULE(MP_QSTR_st_ltdc, st_ltdc_user_cmodule);
 // a soft reset does not clear: without mp_lv_deinit_gc(), lv.init() after
 // Ctrl-D reuses freed memory and hangs.
 void st_ltdc_board_end_soft_reset(boardctrl_state_t *state) {
-    #if defined(MICROPY_HW_LTDC_PINS)
+    #if ST_LTDC_ENABLED
     dma2d_wait_idle();
     // A PARTIAL LVGL display is gone with the heap; its render buffers are free.
     st.partial = false;

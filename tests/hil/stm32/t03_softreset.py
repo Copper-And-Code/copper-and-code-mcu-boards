@@ -6,16 +6,15 @@
 # Expected from the second run on: "scan-out survived the soft reset: True",
 # frames still counting, and on the panel the previous run's label stays
 # visible until the new one replaces it (no garbage, no flicker).
-# Panel from /display_config.py (PANEL, default "IPS1024x600").
+# Panel from /display_config.py (PANEL; default the board's, see stm32_board.py).
 import time
 
 import panels
 import st_ltdc
 
-try:
-    from display_config import PANEL
-except ImportError:
-    PANEL = "IPS1024x600"
+import stm32_board
+
+PANEL = stm32_board.panel()  # /display_config.py, else the board's, else IPS1024x600
 
 before = st_ltdc.info()
 print("scan-out survived the soft reset:", before["running"], "frames", before["frames"],

@@ -1,6 +1,6 @@
 # Phase 3: QSPI flash and SD card writes while the panel scans out.
 #   mpremote run tests/hil/stm32/flash_stress.py
-# Panel from /display_config.py (PANEL, default "IPS1024x600"). Shows the colour
+# Panel from /display_config.py (PANEL; default the board's, see stm32_board.py). Shows the colour
 # ramps, then for DURATION_S seconds writes and deletes 200 KB files in turn on
 # /flash and /sd (if mounted). Watch the panel: no flicker, no shifted lines.
 # Measured: frames against the nominal rate, LTDC FIFO underruns, write speed.
@@ -13,10 +13,9 @@ import st_ltdc
 DURATION_S = 30
 FILE_BYTES = 200 * 1024
 
-try:
-    from display_config import PANEL
-except ImportError:
-    PANEL = "IPS1024x600"
+import stm32_board
+
+PANEL = stm32_board.panel()  # /display_config.py, else the board's, else IPS1024x600
 
 timing = panels.get(PANEL)
 st_ltdc.init(**timing, buffers=2, backlight=100)

@@ -25,7 +25,7 @@ older, there is no `CONTRACT`.
 | `start()` | Resumes the background service. Calling it while LVGL is being served does nothing. |
 | `stop()` | Suspends the background service, and the screen keeps the last image. Calling it twice does nothing. For programs that want their own loop. |
 | `running()` | `True` while LVGL is served in the background, including the short pause after a Ctrl-C (see below). |
-| `backlight(percent=None)` | Sets the backlight, from 0 to 100. With no argument it returns the current level. On the STM32 boards the backlight is a GPIO for now, so any value above 0 is full brightness. |
+| `backlight(percent=None)` | Sets the backlight, from 0 to 100. With no argument it returns the current level. On the STM32H743 boards the backlight is a GPIO for now, so any value above 0 is full brightness; on the STM32F769I-DISCO it is the panel's own brightness (DCS command 0x51). |
 
 ## Ctrl-C
 
