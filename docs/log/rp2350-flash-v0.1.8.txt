@@ -1,0 +1,31 @@
+# 2026-11-20 18:55:07 release image WAVESHARE_RP2350_TOUCH_LCD_4-v0.1.8.uf2 (sha256 d2a05ba4, the same as in the release's SHA256SUMS)
+# written to both RP2350-Touch-LCD-4 with machine.bootloader() + copy to the RP2350 disk, one at a time; files on / kept
+fb05bfd14aef915b (PSRAM on U9): v1.29.0-patched on 2026-11-20, freq 240000000, WIDTH 480, SCALE 1
+efa4446a6990c7fc (no PSRAM):    v1.29.0-patched on 2026-11-20, freq 150000000, WIDTH 240, SCALE 2
+
+# 2026-11-20 19:02:24 two more RP2350-Touch-LCD-4, both with a C firmware of the owner (2e8a:0009), overwritten without a backup at the owner's request;
+# bootloader by a 1200-baud open, the same release uf2 (d2a05ba4). Both have PSRAM on U9:
+1914c5162b1773f5: v1.29.0-patched, 240 MHz, 480x480 SCALE 1, mem_free 8 210 384 before / 8 175 872 after display_driver (BUFFERS 1, touch yes), / empty
+b9c4adc60910f976: the same
+# PSRAM test (8 patterns over 8 126 464 B), grid pattern and 20 s of panel:
+== 1914c5162b1773f5
+free_before 8205056 buffer 8126464 from 0x1102f380 to 0x117ef380
+TOTAL_BAD 0
+pattern 480 480 info {'buffers': 1, 'frames': 2116, 'underruns': 0, 'shown': 0, 'scale': 1}
+panel 20 s: fps 57.75 underruns 0
+== b9c4adc60910f976
+free_before 8205056 buffer 8126464 from 0x1102f380 to 0x117ef380
+TOTAL_BAD 0
+pattern 480 480 info {'buffers': 1, 'frames': 3291, 'underruns': 0, 'shown': 0, 'scale': 1}
+panel 20 s: fps 57.70 underruns 0
+
+# 2026-11-20 19:11:51 one more: e3424ecc778b4f68, C firmware of the owner (2e8a:0009) overwritten without a backup at the owner's request, same uf2. PSRAM on U9:
+v1.29.0-patched on 2026-11-20 (GNU 15.2.1 MinSizeRel) freq 240000000
+WIDTH 480 HEIGHT 480 SCALE 1
+mem_free before driver 8210384
+root: []
+driver 480 480 BUFFERS 1 touch True mem_free 8175872
+free_before 8205056 buffer 8126464 from 0x1102f380 to 0x117ef380
+TOTAL_BAD 0
+pattern 480 480 info {'buffers': 1, 'frames': 800, 'underruns': 0, 'shown': 0, 'scale': 1}
+panel 20 s: fps 57.70 underruns 0
