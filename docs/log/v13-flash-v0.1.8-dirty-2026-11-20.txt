@@ -1,0 +1,82 @@
+# 2026-11-20 19:33:14 V1.3 on /dev/ttyUSB0 (CH340, usb-0:7), UART bootloader; image dist/STM32H7_CORE-V13-v0.1.8-dirty.hex sha256 1cdffd54 (new st_ltdc.c + owner's uncommitted V13 SDRAM burst 1); was 0fd6c573ea (v0.1.7); rollback dist/STM32H7_CORE-V13-v0.1.7.hex
+bootloader v3.1, chip id 0x450, commands 0001021121314463738292
+image 08000000-0811a08b (1155212 bytes), erasing sectors [0, 1, 2, 3, 4, 5, 6, 7, 8]
+erased in 6.3 s
+bank 2 erased in 11.3 s
+write   0%write   1%write   2%write   4%write   5%write   7%write   8%write   9%write  11%write  12%write  14%write  15%write  17%write  18%write  19%write  21%write  22%write  24%write  25%write  26%write  28%write  29%write  31%write  32%write  34%write  35%write  36%write  38%write  39%write  41%write  42%write  43%write  45%write  46%write  48%write  49%write  51%write  52%write  53%write  55%write  56%write  58%write  59%write  60%write  62%write  63%write  65%write  66%write  68%write  69%write  70%write  72%write  73%write  75%write  76%write  77%write  79%write  80%write  82%write  83%write  85%write  86%write  87%write  89%write  90%write  92%write  93%write  95%write  96%write  97%write  99%written 4513 blocks in 148.5 s
+verify   0%verify   1%verify   2%verify   4%verify   5%verify   7%verify   8%verify   9%verify  11%verify  12%verify  14%verify  15%verify  17%verify  18%verify  19%verify  21%verify  22%verify  24%verify  25%verify  26%verify  28%verify  29%verify  31%verify  32%verify  34%verify  35%verify  36%verify  38%verify  39%verify  41%verify  42%verify  43%verify  45%verify  46%verify  48%verify  49%verify  51%verify  52%verify  53%verify  55%verify  56%verify  58%verify  59%verify  60%verify  62%verify  63%verify  65%verify  66%verify  68%verify  69%verify  70%verify  72%verify  73%verify  75%verify  76%verify  77%verify  79%verify  80%verify  82%verify  83%verify  85%verify  86%verify  87%verify  89%verify  90%verify  92%verify  93%verify  95%verify  96%verify  97%verify  99%verify: ok
+reset into the firmware
+
+== tests/hil/stm32/t01_board.py (1/2)
+uname: (sysname='pyboard', nodename='pyboard', release='1.29.0', version='v1.29.0-patched on 2026-11-20', machine='STM32H7_CORE V1.3 with STM32H743')
+ok   known board STM32H7_CORE V1.3 with STM32H743
+freq: (480000000, 240000000, 120000000, 120000000)
+ok   cpu 480 MHz 
+ok   heap in SDRAM total 28687744 free 27359584
+ok   QSPI fs size 16742400 bytes (expected about 16 MB)
+mounts: ['flash', 'sd']
+ok   SD mounted 15625879552 bytes
+LED1 blinked 3 times
+LED2 blinked 3 times
+touch i2c: SoftI2C(scl=B12, sda=B13, freq=500000) ['0x5d']
+ok   GT911 on touch bus 
+ok   GT911 product id b'911\x00'
+
+ID=2e004100:09513330:35333736
+DEVID=0x0450
+REVID=0x2003
+S=480000000
+H=240000000
+P1=120000000
+P2=120000000
+_etext=8119b68
+_sidata=8119b70
+_sdata=24000000
+_edata=2400051c
+_sbss=2400051c
+_ebss=24004430
+_sstack=2407bff8
+_estack=2407fff8
+_ram_start=24000000
+_heap_start=24004430
+_heap_end=2407bff8
+_ram_end=24080000
+qstr:
+  n_pool=5
+  n_qstr=557
+  n_str_data_bytes=4255
+  n_total_bytes=8751
+GC:
+  28687744 total
+  1335184 : 27352560
+  1=961 2=247 m=75776
+SPI flash size: 16777216
+QSPI flash size: 16777216
+LFS free: 15583232 bytes
+
+RESULT: all 7 checks ok
+>
+== tests/hil/stm32/t03_panel.py (2/2)
+panel: IPS1024x600 {'zone_bytes': 4194304, 'cpsr_y': 270, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251814400, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 58310, 'zone_addr': 3250585600, 'height': 600, 'shown': 0, 'running': True, 'polarity': 8, 'frames': 353, 'fb0_addr': 3250585600, 'width': 1024, 'pll3_r': 4, 'partial': False}
+A colour bars + yellow frame: drawn in 7020 ms, swap True
+B ramps red/green/blue/grey: drawn in 7032 ms, swap True
+C 1-pixel checkerboard: drawn in 7014 ms, swap True
+D 20 swaps: 2066 ms (incl. 20 x 100 ms sleep)
+frames 174 in 3000 ms -> 58.00 fps (nominal 58.31), underruns 0
+wrote 200 KB in 2700 ms, frames 164 (expected ~157), underruns 0
+mem_free: 27351744
+info: {'zone_bytes': 4194304, 'cpsr_y': 275, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251814400, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 58310, 'zone_addr': 3250585600, 'height': 600, 'shown': 1, 'running': True, 'polarity': 8, 'frames': 3575, 'fb0_addr': 3250585600, 'width': 1024, 'pll3_r': 4, 'partial': False}
+RESULT: patterns shown; check A-D by eye; underruns 0
+>
+owner by eye: A-D ok (bars order, yellow frame, ramps, checkerboard)
+
+== tests/hil/stm32/t02_lvgl_softreset.py (1/2)
+run: init+refr 4 ms, flushed [320], mem_free before 27364128 after 27210288, lv.is_initialized True
+OK (LVGL left initialised on purpose)
+>
+== tests/hil/stm32/t03_softreset.py (2/2)
+scan-out survived the soft reset: True frames 202 underruns 0
+init kept the scan-out (same timings): True
+LVGL refr_now 9 ms, shown buffer 0
+OK (left running on purpose) {'zone_bytes': 4194304, 'cpsr_y': 383, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251814400, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 58310, 'zone_addr': 3250585600, 'height': 600, 'shown': 0, 'running': True, 'polarity': 8, 'frames': 207, 'fb0_addr': 3250585600, 'width': 1024, 'pll3_r': 4, 'partial': False}
+>

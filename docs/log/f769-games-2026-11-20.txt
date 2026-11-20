@@ -1,0 +1,50 @@
+STM32F769I-DISCO: games from LVGL MPY Studio, a launcher, and the C64 emulator tried and dropped
+Date: 2026-11-20. Owner present and agreed; the owner played and switched games on the board.
+Final firmware sha256 9b449229eff4f117... (MicroPython), written again after the C64 trial.
+
+== Studio games
+breakout, simon, snake, tictactoe (1024x600) and fifteen (480x480) from lvgl-mpy-studio/examples,
+copies set to the STM32F769I-DISCO profile (the Studio scales them to 800x480), checked with
+render_page, uploaded to /flash/lms_apps with the Studio's MCP tools.
+
+== Launcher: python/launcher.py (frozen), /flash/main.py = "import launcher; launcher.main()"
+/flash/launcher.json lists the games by name and app folder. A tap starts a game after a soft
+reset (Studio apps share module names); the user button B1 (PA0) comes back to the menu.
+Problems found and fixed on the way:
+- main.py did not run: with an SD card in, the STM32 port makes /sd the current directory and
+  runs boot.py and main.py from the card. board_boot.py (MICROPY_BOARD_FROZEN_BOOT_FILE) changes
+  back to /flash before boot.py; the card stays mounted at /sd.
+- touch missing after a cold start: st_ltdc.init() pulses the panel's reset, which is the touch
+  controller's too, and display_driver asked for it at once. ft6x06 now retries for 600 ms.
+- machine.soft_reset() from an LVGL callback, or scheduled with the REPL waiting, raises
+  SystemExit that is printed and dropped: nothing happened on a tap. main() now stays in a light
+  loop (LVGL runs in its timer) and soft-resets from the top level when asked.
+- machine.reset() does not come back on this board: after it the program never reaches the
+  start-up code (a value written in RAM before the reset is still there afterwards) and SWD
+  cannot read the chip id until a reset through NRST. Seen with and without main.py. Not found
+  yet; the launcher does not use it. The black RESET button and the ST-LINK's reset work.
+- a flash between screens: display_driver draws as soon as it is imported, before the app has
+  built its screens; the launcher stops it until the app (or the menu) calls start().
+Owner: menu, games, touch, the blue button and RESET all work, no flash.
+
+== C64 emulator (c64-stm32h7's core, a new standalone platform for this board): dropped
+Built in a separate project with this board's DSI display, FT6206 touch, WM8994 audio, the
+ST-LINK serial port as console; ran on the board (BASIC READY, touch and codec found).
+Measured per 20 ms PAL frame at 192 MHz: emulation 20.2-20.8 ms (SID 2.3, 1541 0.7), drawing the
+800x480 frame 14.2 ms (SDRAM write bandwidth shared with the LTDC; write-back caching made it
+16.3 ms, write-through 14.2, uncached 14.8; -O3 no gain).
+  every frame drawn 28 fps (56%), every second 36 fps (73%), every third 40 fps (79%).
+The emulation alone takes a whole PAL frame: no real time on this board without rewriting the
+core. SNES is out of reach (24 ms a frame on the H743 at 480 MHz); Neo Geo was not tried (68000 +
+Z80 and ROMs of 4 to 60+ MB against 16 MB of SDRAM). The owner chose to leave emulators off this
+board: the project was deleted, MicroPython written back.
+
+Board Explorer regression check on the STM32MP157C-DK2 (2026-11-20)
+- project-800x480.json, with the changes made for the F769 (NATIVE case, PWM recreated on a
+  frequency change, read_uv fallback, shorter subtitle), uploaded from the Studio and run.
+- Owner checked on the screen: subtitle, pins, PWM, ADC, LEDs, I2C scan: ok.
+- Board shut down afterwards (poweroff).
+
+Board Explorer regression check on the STM32MP135F-DK (2026-11-20)
+- project.json (480x272), with the same changes, uploaded from the Studio and run.
+- Owner checked on the screen: subtitle, GPIO, PWM, ADC, LEDs, I2C scan: ok.

@@ -1,0 +1,98 @@
+# 2026-11-20 19:51:06 FK743M5-XIH6 (chip 44002f00:03513331:31333634) native USB DFU (BOOT+RESET by owner); image dist/FK743M5-XIH6-v0.1.8-dirty.dfu sha256 210d03bc (new st_ltdc.c); was 0fd6c573ea 2026-11-11 (v0.1.7); rollback dist/FK743M5-XIH6-v0.1.7.dfu
+Target name: ST...
+Image for alternate setting 0, (1 elements, total size = 1155888)
+Setting Alternate Interface #0 ...
+Parsing element 1, address = 0x08000000, size = 1155880
+Erase    done.
+Done parsing DfuSe file
+Upload	[                         ]   0%            0 bytesUpload	[=                        ]   4%        47104 bytesUpload	[==                       ]   8%        93184 bytesUpload	[===                      ]  12%       139264 bytesUpload	[===                      ]  13%       151552 bytesUpload	[====                     ]  16%       185344 bytesUpload	[=====                    ]  20%       231424 bytesUpload	[======                   ]  24%       277504 bytesUpload	[=======                  ]  28%       324608 bytesUpload	[========                 ]  32%       370688 bytesUpload	[=========                ]  36%       416768 bytesUpload	[==========               ]  40%       462848 bytesUpload	[===========              ]  44%       508928 bytesUpload	[============             ]  48%       555008 bytesUpload	[=============            ]  52%       601088 bytesUpload	[=============            ]  52%       602112 bytesUpload	[==============           ]  56%       648192 bytesUpload	[===============          ]  60%       694272 bytesUpload	[================         ]  64%       740352 bytesUpload	[=================        ]  68%       786432 bytesUpload	[==================       ]  72%       832512 bytesUpload	[===================      ]  76%       878592 bytesUpload	[====================     ]  80%       925696 bytesUpload	[=====================    ]  84%       971776 bytesUpload	[======================   ]  88%      1017856 bytesUpload	[======================   ]  91%      1052672 bytesUpload	[=======================  ]  92%      1063936 bytesUpload	[======================== ]  96%      1110016 bytesUpload	[=========================] 100%      1155880 bytes
+Upload done.
+verify: ok (1155880 bytes read back)
+dfu-util: Error during download get_status
+leave: dfu-util reports 'Error during download get_status' (expected with :leave); board back as f055
+
+== tests/hil/stm32/t01_board.py (1/2)
+uname: (sysname='pyboard', nodename='pyboard', release='1.29.0', version='v1.29.0-patched on 2026-11-20', machine='FK743M5-XIH6 with STM32H743')
+ok   known board FK743M5-XIH6 with STM32H743
+freq: (480000000, 240000000, 120000000, 120000000)
+ok   cpu 480 MHz 
+ok   heap in SDRAM total 28687744 free 28678992
+ok   QSPI fs size 8368128 bytes (expected about 8 MB)
+mounts: ['flash', 'sd']
+ok   SD mounted 7974522880 bytes
+LED1 blinked 3 times
+touch i2c: SoftI2C(scl=G3, sda=G7, freq=500000) ['0x5d']
+ok   GT911 on touch bus 
+ok   GT911 product id b'911\x00'
+
+ID=44002f00:03513331:31333634
+DEVID=0x0450
+REVID=0x2003
+S=480000000
+H=240000000
+P1=120000000
+P2=120000000
+_etext=8119e04
+_sidata=8119e0c
+_sdata=24000000
+_edata=2400051c
+_sbss=2400051c
+_ebss=2400442c
+_sstack=2407bff8
+_estack=2407fff8
+_ram_start=24000000
+_heap_start=2400442c
+_heap_end=2407bff8
+_ram_end=24080000
+qstr:
+  n_pool=2
+  n_qstr=30
+  n_str_data_bytes=195
+  n_total_bytes=675
+GC:
+  28687744 total
+  10448 : 28677296
+  1=87 2=36 m=233
+SPI flash size: 8388608
+QSPI flash size: 8388608
+LFS free: 8269824 bytes
+
+RESULT: all 7 checks ok
+>
+== tests/hil/stm32/t03_panel.py (2/2)
+panel: IPS1024x600 {'zone_bytes': 4194304, 'cpsr_y': 0, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251814400, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 58310, 'zone_addr': 3250585600, 'height': 600, 'shown': 0, 'running': True, 'polarity': 8, 'frames': 0, 'fb0_addr': 3250585600, 'width': 1024, 'pll3_r': 4, 'partial': False}
+A colour bars + yellow frame: drawn in 6960 ms, swap True
+B ramps red/green/blue/grey: drawn in 6944 ms, swap True
+C 1-pixel checkerboard: drawn in 6931 ms, swap True
+D 20 swaps: 2056 ms (incl. 20 x 100 ms sleep)
+frames 174 in 3000 ms -> 58.00 fps (nominal 58.31), underruns 0
+wrote 200 KB in 3450 ms, frames 209 (expected ~201), underruns 0
+mem_free: 28672288
+info: {'zone_bytes': 4194304, 'cpsr_y': 205, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251814400, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 58310, 'zone_addr': 3250585600, 'height': 600, 'shown': 1, 'running': True, 'polarity': 8, 'frames': 3243, 'fb0_addr': 3250585600, 'width': 1024, 'pll3_r': 4, 'partial': False}
+RESULT: patterns shown; check A-D by eye; underruns 0
+>
+--- rerun with PANEL=RGB043M2 (owner: the FK has an 800x480 panel; IPS1024x600 default cut black bar and frame)
+panel: RGB043M2 {'zone_bytes': 4194304, 'cpsr_y': 1, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251353600, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 110904, 'zone_addr': 3250585600, 'height': 480, 'shown': 0, 'running': True, 'polarity': 0, 'frames': 0, 'fb0_addr': 3250585600, 'width': 800, 'pll3_r': 4, 'partial': False}
+A colour bars + yellow frame: drawn in 3992 ms, swap True
+B ramps red/green/blue/grey: drawn in 3978 ms, swap True
+C 1-pixel checkerboard: drawn in 3971 ms, swap True
+D 20 swaps: 2123 ms (incl. 20 x 100 ms sleep)
+frames 332 in 3000 ms -> 110.67 fps (nominal 110.90), underruns 0
+wrote 200 KB in 3408 ms, frames 394 (expected ~377), underruns 0
+mem_free: 28671984
+info: {'zone_bytes': 4194304, 'cpsr_y': 144, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251353600, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 110904, 'zone_addr': 3250585600, 'height': 480, 'shown': 1, 'running': True, 'polarity': 0, 'frames': 4523, 'fb0_addr': 3250585600, 'width': 800, 'pll3_r': 4, 'partial': False}
+RESULT: patterns shown; check A-D by eye; underruns 0
+>
+owner by eye with RGB043M2: A-D ok
+wrote /flash/display_config.py: PANEL = "RGB043M2" (revert: delete it)
+
+== tests/hil/stm32/t02_lvgl_softreset.py (1/2)
+run: init+refr 4 ms, flushed [320], mem_free before 28683840 after 28496736, lv.is_initialized True
+OK (LVGL left initialised on purpose)
+>
+== tests/hil/stm32/t03_softreset.py (2/2)
+scan-out survived the soft reset: True frames 24373 underruns 0
+init kept the scan-out (same timings): True
+LVGL refr_now 7 ms, shown buffer 0
+OK (left running on purpose) {'zone_bytes': 4194304, 'cpsr_y': 492, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251353600, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 110904, 'zone_addr': 3250585600, 'height': 480, 'shown': 0, 'running': True, 'polarity': 0, 'frames': 24377, 'fb0_addr': 3250585600, 'width': 800, 'pll3_r': 4, 'partial': False}
+>

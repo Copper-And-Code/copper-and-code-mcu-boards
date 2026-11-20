@@ -1,0 +1,36 @@
+STM32F769I-DISCO (MB1225B, display MB1166 A-02): phase 3, the touch controller
+Date: 2026-11-20. Owner present and agreed; the owner touched the panel for each check.
+Board: STM32F769NI, ST-LINK/V2.1 (/dev/ttyACM0 = UART1 REPL). Scripts run from RAM with
+mpremote run (nothing written to the flash until the final firmware).
+Sources: as phase 2, plus python/ft6x06.py (new), frozen by boards/stm32/STM32F769_DISCO/manifest.py.
+Final firmware sha256 b4d63d8905773046..., written with st-flash --connect-under-reset, verified.
+
+== Driver
+python/ft6x06.py: FT6206/FT6236/FT6336, polled on I2C4 (400 kHz), the interface of gt911.py
+(read, lv_read_cb, lv_register, errors, interrupted). One 5-byte read of 0x02..0x06 (points, P1 x, y).
+- Chip id (0xA8) 0x11 = FT6206, firmware (0xA6) 0x10. G_MODE (0xA4) set to 0 (polling).
+- One read: 228 us. With no finger the controller reports 15 points (0x0F): taken as no touch.
+
+== Orientation (four targets, the owner touching 1..4)
+target on screen (x, y)   raw (x, y)
+1 (60, 60)                (405, 82)
+2 (740, 60)               (394, 754)
+3 (740, 420)              (112, 736)
+4 (60, 420)               (88, 85)
+-> screen x = raw y, screen y = 479 - raw x: FT6x06(swap_xy=True, invert_y=True). Offsets of 20-40
+px are within the 80 px targets (a fingertip).
+
+== LVGL test, 90 s (dot under the finger, button, slider)
+Owner: the dot stays under the finger, corners included; slider follows. Covered x 15..797,
+y 28..474; 0 I2C errors; LTDC 9798 frames, 0 underruns, 0 bus errors.
+The program counted 9 clicks, the owner made 5 on purpose: checked next.
+
+== Click test, 40 s (5 taps, then a 3 s hold, on one button)
+clicks 6 (5 taps + the hold: LVGL sends CLICKED on its release too)
+touch runs ms [34, 68, 68, 68, 68, 4825]; gaps ms [659, 1254, 3074, 1779, 2899]; points seen {0, 1}
+No release flicker during a hold: the 9 of the first test were passes over the button (it sat in
+the middle, under the dot's path). No debounce needed. LVGL reads the input every ~34 ms.
+
+== Result
+Phase 3 done: touch works with LVGL in landscape. Not done: the interrupt line (PI13, unused),
+two-finger gestures, the display_driver contract (phase 4).

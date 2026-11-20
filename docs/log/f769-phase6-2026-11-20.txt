@@ -1,0 +1,55 @@
+STM32F769I-DISCO (MB1225B, display MB1166 A-02): phase 6, SD card, network, audio
+Date: 2026-11-20. Owner present and agreed; the owner listened to the audio. Order asked by the
+owner: SD, Ethernet (with TLS), audio. No Wi-Fi on the board (UM2033: a connector for a serial
+Wi-Fi daughterboard only); Ethernet RJ45 CN10.
+Board: STM32F769NI, ST-LINK/V2.1 (/dev/ttyACM0 = UART1 REPL). Last firmware sha256
+5a503135507c227a..., written with st-flash --connect-under-reset, verified.
+
+== SD card (already on since phase 1: SDMMC2, detect PI15)
+The owner's 16 GB card: SDCard info (15910043648, 512, 1), FAT with 32 KB clusters, /sd empty.
+tests/hil/stm32/flash_stress.py (30 s, panel on): /flash 105 KB/s, /sd 1308 KB/s (200 KB files,
+write + delete), 61.56 fps of 61.58, 0 underruns.
+4 MB file on /sd: write 2537 KB/s, read 9990 KB/s, data checked.
+
+== Network (Ethernet, lwIP, mbedTLS, bundle-networking)
+Phase 1 said the network made the program 252 KB too big for 2 MB: wrong. It was too big for the
+1 MB of MicroPython's linker script; with the board's 2 MB script it was never tried again.
+With lwIP + mbedTLS + bundle-networking: text 1333208 (about 1.3 MB of 2 MB). Turned on: ETH pins
+(#if 1), MICROPY_PY_LWIP, MICROPY_PY_SSL, MICROPY_SSL_MBEDTLS, require("bundle-networking").
+A clean build was needed (frozen qstrs of the earlier build: "redeclaration of enumerator").
+network.LAN().active(True): status 0, no link in 15 s: no cable plugged in. ssl, requests,
+mip, ntptime import.
+Later, with the owner's cable to the home router:
+  DHCP: connected (status 3) in 5.5 s, a /24 address, gateway and DNS from the router.
+  ntptime.settime(): ok.
+  HTTPS GET https://micropython.org/ks/test.html (requests, no certificate check): 200, 180 bytes,
+  1793 ms with the TLS handshake.
+  ssl CERT_REQUIRED with no CA loaded: refused, MBEDTLS_ERR_SSL_CA_CHAIN_REQUIRED (as it should;
+  checking a server needs its CA given with load_verify_locations).
+  LAN speed: 4 MB from an HTTP server on the PC (python3 -m http.server, LAN only, stopped after),
+  socket.readinto with 16 KB: 11.40 MB/s twice (about 91 Mbit/s of the 100 Mbit link); with
+  SHA-256 on the fly 3.78 MB/s, digest identical to the PC's.
+
+== Audio: WM8994 on SAI1 block A, headphone/line output jack CN7
+- modules/st_audio/st_audio.c (new): PLLI2S as SAI1 clock (44.1 kHz family N 429 Q 2 DIVQ 19,
+  48 kHz family N 344 Q 7 DIVQ 1, then MCKDIV), SAI1_A master TX, 64-bit frame, slots 0 and 2,
+  16 bit; DMA2 stream 1 channel 0 (not used by MicroPython on this board) circular over a 32 KB
+  ring, no interrupt; what was played is zeroed when the ring is next looked at, so a late feeder
+  gives silence. write(buf, mono, shift), queued(), info().
+- Pins (ST's .ioc for the board): MCLK PG7, SCK PE5, FS PE4, SD PE6 (AF6); named in pins.csv
+  (AUDIO_MCLK, ...), else the port has no pin objects for them.
+- python/stm32/audio.py (new): the API of python/esp32/audio.py (beep, tone, play WAV, playing,
+  finish, stop) plus volume(); ST's WM8994_Init for headphone out, no input, as register writes;
+  a machine.Timer every 20 ms tops the queue up to 8 KB.
+- buzzer.py: on an STM32 board with "audio" in stm32_board.CONFIG it uses audio.py; Studio profile
+  studio-board.json revision 2 with "buzzer": {"audio": true}.
+Checks: codec id 0x8994; DMA 4402 bytes in 50 ms at 22.05 kHz stereo (4410 expected); first sound
+380 ms after the call (the codec's start-up sequence, once), then at once.
+Owner, headphones on CN7: three beeps, a 440 Hz tone at volume 30/60/90, a melody from a 44.1 kHz
+stereo WAV on /sd (1800 ms of sound in 1855 ms): all heard, clean.
+With display_driver and an LVGL spinner running: buzzer.beep through the codec, the melody in 1827
+ms, 0 underruns, 0 touch errors.
+
+== Not done
+Speaker outputs JP2/JP3 (another codec set-up);
+line input and the MEMS microphones; SPDIF.

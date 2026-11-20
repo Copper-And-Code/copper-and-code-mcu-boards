@@ -1,0 +1,53 @@
+STM32F769I-DISCO (MB1225B, display MB1166 A-02): phase 1, MicroPython + LVGL without the display
+Date: 2026-11-20. Owner present and agreed: erase everything (no backup asked), write the firmware.
+Board: STM32F769NI, chip id 0x451, 2 MB flash, ST-LINK/V2.1 V2J40S27 (/dev/ttyACM0 = UART1 REPL).
+Sources: MicroPython v1.29.0 (0fd6c57), omnipython-lvgl a13f5c7 (v9.5.54); board boards/stm32/STM32F769_DISCO
+(not committed yet).
+
+== Build
+scripts/build.sh stm32 STM32F769_DISCO
+- MicroPython's STM32F769DISC links in 1 MB (boards/stm32f769.ld): the board's own copy has the whole 2 MB.
+- With lwIP and mbedTLS (as upstream) the program was 252 KB over the 1 MB linker script, not
+  2 MB as first written here (see docs/log/f769-phase6-2026-11-20.txt): network off for now
+  (MICROPY_PY_LWIP, SSL, bundle-networking, the ETH pins), back later.
+- Final size: text 1128776, data 1308, bss 32988 (first build).
+
+== Flash
+st-flash erase                                      -> Mass erase completed successfully
+st-flash --reset --format ihex write <hex>         -> Flash written and verified
+(after the pin fix: firmware sha256 88a3d4ffcb440982..., written and verified the same way)
+
+== REPL
+mpremote exec: sys.implementation _machine='STM32F769I-DISCO with STM32F769', version 1.29.0
+machine.freq() (192000000, 192000000, 48000000, 96000000)   SYSCLK 192 MHz (SDRAM at 96 MHz)
+gc.mem_free() 16390096                                     GC heap in the 16 MB SDRAM
+os.listdir('/') ['flash', 'sd']; statvfs('/flash') 4096 x 16371 blocks: the QSPI flash, a new FAT
+import lvgl -> 9.5.0
+
+== SDRAM
+- Word test, array('I'), each word a different value: 6 MB written and read back 3 times, 0 bad words
+  (1572864 words; filling took 26.5 s in Python). After the pin fix: 4 MB, 0 bad words.
+- One word every 4 KB over the upper 8 MB, written and read back: 0 bad; addresses 8 MB apart do not alias.
+- "Hangs" seen first were not the board: the test's Python loop (a 4 KB memoryview slice per step in an
+  8 MB bytearray) grows with the square of the size, 1 MB 1.8 s, 4 MB 22 s, 8 MB 88.6 s, and mpremote's
+  buffered output was lost when the PC-side timeout killed it. The MicroPython GC scans its allocation
+  table from the first free block for each small allocation (as in docs/stm32h743.md, phase 5).
+
+== Pin table: MicroPython's STM32F769DISC pins.csv and I2C3 are not this board's
+- I2C3 on PH7/PH8 ("LCD_SCL/LCD_SDA", "AUDIO_SCL/SDA"): PH8 is FMC_D16, a data line of the SDRAM.
+  machine.I2C(3), or Pin(Pin.cpu.H8) as an input, corrupted the memory MicroPython runs in: variables
+  changing type ("'list' object isn't callable", "'str' object has no attribute 'value'") and hangs.
+- Arduino D7, D8, D10, D13 on PI3, PI2, PI0, PI1 (FMC_D27..D24), TP1/TP3 on SDRAM lines, SW on PI11
+  (USB HS): a table of another Discovery.
+- Fixed from ST's pin data (STM32_open_pin_data boards/C71_Discovery_STM32F769I-DISCO...ioc) and
+  Zephyr's boards/st/stm32f769i_disco (Arduino map): A0-A5 PA6 PA4 PC2 PF10 PF8 PF9, D0-D15 PC7 PC6 PJ1
+  PF6 PJ0 PC8 PF7 PJ3 PJ4 PH6 PA11 PB15 PB14 PA12 PB9 PB8; SW PA0; I2C4 SCL PD12 SDA PB7 (touch, audio);
+  LCD_RESET PJ15, LCD_TE PJ2, LCD_BL_CTRL PI14, LCD_INT PI13, AUDIO_INT PJ12.
+
+== I2C4
+LCD_RESET pulsed low 20 ms, then high; machine.I2C(4, freq=100000).scan() -> ['0x1a', '0x2a']
+0x1a: WM8994 audio codec. 0x2a: touch, chip id register 0xA8 = 0x11 (FT6206), firmware 0x10.
+
+== Result
+Phase 1 done: MicroPython + LVGL run, SDRAM heap good, QSPI filesystem, touch found. Not tried: USB HS,
+SD card contents, Ethernet (off), the display (phase 2).

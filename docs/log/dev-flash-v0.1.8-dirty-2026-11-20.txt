@@ -1,0 +1,82 @@
+# 2026-11-20 20:29:00 DEV190806042 native USB DFU (BOOT+RESET by owner); was the standalone C64 emulator + launcher (not MicroPython)
+backup of the whole 2 MB internal flash: ../_private/dev190806042-backup-2026-11-20.bin sha256 c8db9a41 (restore: dfu-util -a 0 -d 0483:df11 -s 0x08000000:leave -D <file>)
+storage: MicroPython /flash is U4 QSPI (unused by the emulator); the emulator's LittleFS archive is U5 SPI2, not touched by MicroPython
+image dist/DEV190806042-v0.1.8-dirty.dfu sha256 0518d6a9 (new st_ltdc.c)
+Download done.
+Done parsing DfuSe file
+Upload done.
+verify: ok (1148672 bytes read back)
+left DFU
+['boot.py', 'main.py', 'pybcdc.inf', 'README.txt', 'GT911_2']
+
+== tests/hil/stm32/t01_board.py (1/2)
+uname: (sysname='pyboard', nodename='pyboard', release='1.29.0', version='v1.29.0-patched on 2026-11-20', machine='DEV190806042 with STM32H743')
+ok   known board DEV190806042 with STM32H743
+freq: (480000000, 240000000, 120000000, 120000000)
+ok   cpu 480 MHz 
+ok   heap in SDRAM total 28687744 free 28679664
+ok   QSPI fs size 33517568 bytes (expected about 32 MB)
+mounts: ['flash']
+LED1 blinked 3 times
+touch i2c: SoftI2C(scl=H6, sda=G7, freq=500000) ['0x5d']
+ok   GT911 on touch bus 
+ok   GT911 product id b'911\x00'
+
+ID=1c003a00:0c513330:37343838
+DEVID=0x0450
+REVID=0x2003
+S=480000000
+H=240000000
+P1=120000000
+P2=120000000
+_etext=81181dc
+_sidata=81181e4
+_sdata=24000000
+_edata=2400051c
+_sbss=2400051c
+_ebss=240043b0
+_sstack=2407bff8
+_estack=2407fff8
+_ram_start=24000000
+_heap_start=240043b0
+_heap_end=2407bff8
+_ram_end=24080000
+qstr:
+  n_pool=2
+  n_qstr=31
+  n_str_data_bytes=203
+  n_total_bytes=683
+GC:
+  28687744 total
+  9328 : 28678416
+  1=75 2=30 m=233
+SPI flash size: 33554432
+QSPI flash size: 33554432
+LFS free: 33501184 bytes
+
+RESULT: all 6 checks ok
+>
+== tests/hil/stm32/t03_panel.py (2/2)
+panel: IPS1024x600 {'zone_bytes': 4194304, 'cpsr_y': 0, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251814400, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 58310, 'zone_addr': 3250585600, 'height': 600, 'shown': 0, 'running': True, 'polarity': 8, 'frames': 0, 'fb0_addr': 3250585600, 'width': 1024, 'pll3_r': 4, 'partial': False}
+A colour bars + yellow frame: drawn in 3317 ms, swap True
+B ramps red/green/blue/grey: drawn in 3315 ms, swap True
+C 1-pixel checkerboard: drawn in 3301 ms, swap True
+D 20 swaps: 2066 ms (incl. 20 x 100 ms sleep)
+frames 174 in 3000 ms -> 58.00 fps (nominal 58.31), underruns 0
+wrote 200 KB in 1370 ms, frames 83 (expected ~79), underruns 0
+mem_free: 28670912
+info: {'zone_bytes': 4194304, 'cpsr_y': 549, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251814400, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 58310, 'zone_addr': 3250585600, 'height': 600, 'shown': 1, 'running': True, 'polarity': 8, 'frames': 2057, 'fb0_addr': 3250585600, 'width': 1024, 'pll3_r': 4, 'partial': False}
+RESULT: patterns shown; check A-D by eye; underruns 0
+>
+owner by eye: A-D ok
+
+== tests/hil/stm32/t02_lvgl_softreset.py (1/2)
+run: init+refr 3 ms, flushed [320], mem_free before 28684496 after 28497360, lv.is_initialized True
+OK (LVGL left initialised on purpose)
+>
+== tests/hil/stm32/t03_softreset.py (2/2)
+scan-out survived the soft reset: True frames 4080 underruns 0
+init kept the scan-out (same timings): True
+LVGL refr_now 4 ms, shown buffer 0
+OK (left running on purpose) {'zone_bytes': 4194304, 'cpsr_y': 628, 'backlight': 100, 'pclk_hz': 50000000, 'underruns': 0, 'reload_timeouts': 0, 'fb1_addr': 3251814400, 'buffers': 2, 'bus_errors': 0, 'pll3_n': 40, 'refresh_mhz': 58310, 'zone_addr': 3250585600, 'height': 600, 'shown': 0, 'running': True, 'polarity': 8, 'frames': 4082, 'fb0_addr': 3250585600, 'width': 1024, 'pll3_r': 4, 'partial': False}
+>

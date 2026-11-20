@@ -1,0 +1,50 @@
+STM32F769I-DISCO (MB1225B, display MB1166 A-02): phase 5, machine and the board's description
+Date: 2026-11-20. Owner present and agreed; the owner used Board Explorer and touched the panel.
+Board: STM32F769NI, ST-LINK/V2.1 (/dev/ttyACM0 = UART1 REPL). Final firmware sha256
+a787d51d263c5136..., written with st-flash --connect-under-reset, verified.
+
+== machine (MicroPython 1.29's own)
+Pin, ADC, PWM, I2C, SPI, UART, Timer, WDT, RTC are there. machine.ADC has no read_uv (read_u16).
+ADC on A0-A5: A0-A2 on ADC1, A3-A5 (PF10, PF8, PF9) on ADC3, chosen by machine.ADC from the pin.
+PWM on the connector (machine.PWM's own pick): D0 TIM8_CH2, D1 TIM8_CH1, D3 TIM10_CH1, D5 TIM8_CH3,
+D6 TIM11_CH1, D9 TIM12_CH1, D10 TIM1_CH4, D11 TIM12_CH2, D12 TIM12_CH1, D14 TIM11_CH1,
+D15 TIM10_CH1, A0 TIM13_CH1, A4 TIM13_CH1, A5 TIM14_CH1. Described: D3 D5 D6 D9 D10 (no bus pins).
+- UART6 added on D1 (PC6 TX) / D0 (PC7 RX) in mpconfigboard.h: UART(6) did not exist.
+- I2C1 on D15/D14 (PB8/PB9), SPI2 on D13/D12/D11 (PA12/PB14/PB15), D10 PA11.
+- machine.Pin("PA6") did not exist (the port knows "A6" and the board's names; "A0" is the
+  connector's PA6, not PA0). pins.csv now also names the connector's pins, the LEDs and the user
+  button by their MCU names ("PA6,PA6", ...).
+- PWM: going from 50 Hz to 1 kHz with init(freq=) or freq(), the pin stayed low for a while: a
+  lower prescaler takes effect at the counter's next overflow, up to 0.65 s at the old one. A new
+  PWM object starts at once.
+
+== Description: python/mpy_board.py + boards/stm32/STM32F769_DISCO/mpy_board_data.py (frozen)
+The format and the API of lvgl-mpy-linux's mpy_board (describe, pin, connector); /flash/board.json
+replaces the frozen one. Connector "Arduino" D0-D15, A0-A5; i2c 1, spi 2, uart 6; pwm 5 pins with
+the timer's name; adc 12 bits 3.3 V with channels; aliases; LEDs LD1 red PJ13, LD2 green PJ5 (LD3
+PA12 is D13, left out); button PA0.
+Checked on the board: every connector pin opens by name, the 6 ADC inputs read, the 5 PWM pins
+start (timer names as described), UART(6), I2C(1).scan() (nothing wired: []), SPI(2), LEDs, button.
+
+== Board Explorer (lvgl-mpy-linux examples/machine/board-explorer, 800x480 project, board set to
+the STM32F769I-DISCO profile in a copy; uploaded and run from LVGL MPY Studio's MCP tools)
+NATIVE (no mpy_m4, not Linux): "MicroPython's own machine"; the MCU reads an output back from the
+pin, and times a PWM on its pin with machine.time_pulse_us (first pair dropped):
+   50 Hz 25%: 50.7 Hz 24.0%     1000 Hz 25%: 1023.8 Hz 23.7%     1000 Hz 75%: 1042.5 Hz 74.4%
+   50 Hz 50%: 50.7 Hz 49.3%     D3 D5 D9 D10 at 1 kHz 25%: 1021-1031 Hz, 23.1-23.9%
+   20 kHz read as 27.8 kHz (8.6% for 25%): above 5 kHz the app does not time it and says so.
+   D2 output 1/0 read back 1/0; input with pull-up 1; A0 floating 0.76 V.
+Owner: subtitle on one line (after shortening it), D2 output, D6 PWM, A0, LED switches, pins in
+the top and bottom rows all right.
+
+== Touch calibration (the LED switches at the bottom were hard to hit)
+Nine crosses (3 x 3), the owner touching each; one touch was counted twice (the centre), so the
+bottom-right cross is missing. With the earlier four targets, 21 touches:
+  screen y from raw x: current 479 - raw has residuals up to +53 at the bottom (reads too high)
+  fit: y = 516.0 - 1.0925 * raw x (rms 16.1 px);  x = -19.2 + 1.008 * raw y (rms 11.7 px)
+In ft6x06.FT6x06 as cal=(1.008, -19.2, 1.0925, -7.3) after swap_xy and invert_y (stm32_board.py).
+The rest is the fingertip. Owner after it: LED switches at the first touch, pins right.
+
+== Result
+Phase 5 done for Board Explorer. Not run here: timing-lab (it uses Linux's /proc and _thread),
+data-logger, web-panel, system-monitor (network, Linux).

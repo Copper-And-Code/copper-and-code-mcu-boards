@@ -1,0 +1,40 @@
+STM32F769I-DISCO (MB1225B, display MB1166 A-02): phase 4, display_driver, tests, LVGL MPY Studio
+Date: 2026-11-20. Owner present and agreed; the owner tapped the Studio app on the panel.
+Board: STM32F769NI, ST-LINK/V2.1 (/dev/ttyACM0 = UART1 REPL). Firmware sha256 2214d8afb79999bd...,
+written with st-flash --connect-under-reset --reset --format ihex write, verified.
+
+== Changes
+- python/stm32_board.py: "STM32F769I-DISCO" with panel "MB1166" (the default when
+  /flash/display_config.py names none; the H743 boards keep IPS1024x600) and touch
+  ("ft6x06", 4, {swap_xy, invert_y}); touch() builds an FT6x06 on hardware I2C4 at 400 kHz.
+- python/stm32/display_driver.py: comments only (DSI panel, FT6x06, backlight by DCS).
+- boards/stm32/STM32F769_DISCO/manifest.py: freezes stm32_board, display_driver, ui, ft6x06.
+- tests/hil/stm32/t03_softreset.py, t03_panel.py, flash_stress.py: the panel from
+  stm32_board.panel() instead of display_config with IPS1024x600 as fallback (same on the H743s).
+- boards/stm32/STM32F769_DISCO/studio-board.json: a board definition for LVGL MPY Studio
+  (import from file; adapter stm32f769i_disco, so the Studio reaches it through mpremote).
+- docs/display-driver.md: backlight on the STM32F769I-DISCO.
+
+== Results
+import display_driver: 518 ms; board STM32F769I-DISCO, panel MB1166 800x480, touch FT6x06, running.
+tests/host/test_display_contract.py on the board: RESULT: OK.
+t05_lvgl_gc: 300/300 callbacks twice, 0 wrong: RESULT ok.
+t02_lvgl_softreset x3: OK x3. t03_softreset x3: scan-out survived the soft reset, init kept the
+  scan-out, 0 underruns.
+st_ltdc.init/deinit x3 (DSI stopped and started again): init 499-509 ms, 0 underruns.
+t05_perf: H743 only (reads the AXI GPV QoS registers at 0x51000000, not on the F7: the board
+  stops). Its benchmarks without that part:
+    off  loop 538 ms  alloc 662 ms  copy 96 MB/s  gc 200 ms
+    on   loop 536 ms  alloc 662 ms  copy 80 MB/s  gc 205 ms  underruns 0
+  LVGL, 40 buttons, full 800x480 refresh: median 81.2 ms.
+t05_render_mem: not run (uses the H743's AXI SRAM).
+t05_soak (15 min): LVGL 18.1 refreshes/s, panel 61.58 fps, 0 underruns, 0 errors, 0 touch
+  errors, min_free 12160736, memory flat. (H743 at 480 MHz, 1024x600: about 35/s.)
+Fonts in the firmware: Montserrat 14, 16, 24, 32, 40.
+LVGL MPY Studio (MCP tools): board imported from studio-board.json; project 800x480 with a button,
+  a label and a slider; device_info compatible (modules, touch, size, fonts); upload and run:
+  LVGL_MPY_STUDIO_APP_READY buffers=2 touch=True; owner tapped 13 times, console "tap 1".."tap 13".
+
+== Not done
+Backlight levels by eye (backlight(50) reads back only); tearing by eye during the soak;
+t04_touch_paint and t04_click (hands); hardware check of the H743 boards with the new st_ltdc.c.

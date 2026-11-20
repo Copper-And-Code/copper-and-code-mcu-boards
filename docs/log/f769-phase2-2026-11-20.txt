@@ -1,0 +1,46 @@
+STM32F769I-DISCO (MB1225B, display MB1166 A-02): phase 2, the MIPI-DSI display
+Date: 2026-11-20. Owner present and agreed; the owner looked at the panel for each check.
+Board: STM32F769NI, ST-LINK/V2.1 (/dev/ttyACM0 = UART1 REPL). Firmware written with
+st-flash --connect-under-reset --reset --format ihex write <hex>, verified each time.
+Sources: MicroPython v1.29.0, omnipython-lvgl v9.5.54; board boards/stm32/STM32F769_DISCO and
+modules/st_ltdc (not committed yet). Final firmware sha256 3873e2fbef10a279...
+
+== What was added
+- modules/st_ltdc on the F7: PLLSAI for the pixel clock (N 384, R 7, DIVR 2 -> 27.429 MHz), the
+  DSI host (HAL_DSI, PLL NDIV 100 IDF 5 ODF 1, 2 lanes, video burst mode, lane byte 62.5 MHz),
+  ST's OTM8009A set-up (otm8009a.c v1.0.5, BSD-3) in RGB888 landscape, DCS 0x51 for brightness.
+  No write-through MPU region on the F7 (all 8 regions in use): SCB_CleanDCache after drawing.
+- The HAL's DSI driver goes in the board's HAL_SRC_C (mpconfigboard.mk). Listed in the module's
+  SRC_USERMOD_LIB_C it was built at ../lib/... and left a stray ports/lib/ in .work/micropython,
+  which build.sh then refused ("changes that are not the patches"); the folder was removed.
+- python/panels.py: "MB1166", 800x480, HSA 2 HBP 34 HFP 34, VSA 1 VBP 15 VFP 16, polarity 11.
+
+== Problem 1: init() hung, nothing printed
+Found with a stage variable written at each step and read over SWD after the hang
+(st-flash --connect-under-reset read <addr> 4): the hang was the first write to DSI_CR, in
+HAL_DSI_DeInit. Reading DSI_VR (0x3133302a) worked; from the REPL, by hand, the same writes worked.
+Cause: the DSI host was set up before the LTDC's clock was on, just after PLLSAI was changed.
+ST's BSP enables the LTDC clock first (BSP_LCD_MspInit). Fixed: LTDC clock and reset, then the DSI.
+init() now returns in 502 ms (the panel's own delays included).
+
+== Problem 2: the bars were slanted and repeated (16 in landscape, ~32 in portrait)
+LTDC_LxCFBLR line length: bytes + 7 on the H7 (RM0433), bytes + 3 on the F7 (RM0410). With +7 every
+line started 2 pixels later. Fixed for non-H7. Portrait (480x800) showed the same slant, which
+pointed away from the panel's rotation.
+
+== Checks on the panel (owner's eyes)
+- 8 vertical colour bars, red green blue white yellow cyan magenta black, left to right: straight,
+  full screen, steady.
+- LVGL 9.5, DIRECT mode, 2 framebuffers in the SDRAM: label, button, slider, as drawn, sharp.
+- Full-screen refresh (800x480, invalidate + refr_now, 20 runs): best 15.9 ms, median 16.2 ms,
+  worst 16.2 ms (22.5 ms with a slider on screen, earlier run) -> about 60 fps, the panel's rate.
+- st_ltdc.info(): pclk 27428571 Hz, dsi_lanebyte_khz 62500, underruns 0, bus_errors 0,
+  reload_timeouts 0 (3073 frames in one run).
+
+== Other boards
+scripts/build.sh stm32 FK743M5-XIH6, DEV190806042, STM32H7_CORE V13: all build (rc 0) with the
+changed st_ltdc.c. Not run on those boards in this phase.
+
+== Result
+Phase 2 done: the display runs from st_ltdc with LVGL at ~60 fps. Not done: touch (phase 3), the
+display_driver contract and Studio profile (phase 4), hardware check of the H743 boards.
