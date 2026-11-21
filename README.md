@@ -15,12 +15,13 @@ same on every board: [docs/display-driver.md](docs/display-driver.md).
 
 | Board | MCU | Display | State |
 |---|---|---|---|
-| [Waveshare RP2350-Touch-LCD-4](boards/rp2/WAVESHARE_RP2350_TOUCH_LCD_4/README.md) | RP2350B | 4" 480x480 RGB (ST7701S), GT911 touch | works at 240x240 (no PSRAM), see README; on omnipython-lvgl since 2026-11-10 (1 h soak, touch) |
+| [Waveshare RP2350-Touch-LCD-4](boards/rp2/WAVESHARE_RP2350_TOUCH_LCD_4/README.md) | RP2350B | 4" 480x480 RGB (ST7701S), GT911 touch | works, tested on hardware. Two resolutions, chosen at boot: **240x240** (shown as 2x2 pixels) as Waveshare ships it; **480x480** with an 8 MB QSPI PSRAM (APS6404L) soldered on the empty U9 footprint (since v0.1.8). 57.7 fps both, touch, 30 min soak |
 | [STM32H7_CORE V1.3](docs/stm32h743.md) | STM32H743 | RGB panel on LTDC (1024x600 tested), GT911 touch | works, tested on hardware: 58 fps, 15 min soak, touch, SD card |
 | [STM32H7_CORE V1.0](docs/stm32h743.md) | STM32H743 | RGB panel on LTDC (1024x600 tested), GT911 touch | works, tested on hardware: 58 fps, 15 min soak, SD card |
-| ESP32-4848S040 | ESP32-S3 | 4" 480x480 RGB (ST7701), GT911 touch | works, tested on hardware: 42 fps; built on omnipython-lvgl |
+| [ESP32-4848S040](docs/esp32-4848s040.md) | ESP32-S3 | 4" 480x480 RGB (ST7701), GT911 touch | works, tested on hardware: 42 fps, touch, SD card, audio |
 | [DEV190806042](docs/stm32h743.md) | STM32H743 | RGB panel on LTDC (1024x600 tested), GT911 touch | works, tested on hardware: 58 fps, 15 min soak, touch |
 | [FK743M5-XIH6](docs/stm32h743.md) | STM32H743 | RGB panel on LTDC (1024x600 tested), GT911 touch | works, tested on hardware: 58 fps, 15 min soak, touch, SD card |
+| [STM32F769I-DISCO](boards/stm32/STM32F769_DISCO/) (MB1225B) | STM32F769NI | MB1166 A-02: 4" 800x480 MIPI-DSI (OTM8009A), FT6206 touch | **in development, in no release yet**: tested on hardware, ~60 fps, touch, SD card, Ethernet, audio, `machine` on the Arduino connector |
 
 ## Build
 
@@ -30,6 +31,7 @@ scripts/build.sh <port> <BOARD> [VARIANT]   # pinned sources and toolchain in .w
 scripts/build.sh rp2 WAVESHARE_RP2350_TOUCH_LCD_4   # same as scripts/build_rp2.sh
 scripts/build.sh stm32 STM32H7_CORE V13             # V10 or V13, the variant is required
 scripts/build.sh esp32 ESP32_4848S040               # needs ESP-IDF v5.5.2, see scripts/build_esp32.sh
+scripts/build.sh stm32 STM32F769_DISCO              # flash with st-flash (ST-LINK on the board)
 ```
 
 Flashing an STM32 board over USB: [docs/flash-dfu.md](docs/flash-dfu.md). Over the UART
@@ -42,7 +44,7 @@ since v0.1.5 is (`docs/stm32h743.md`, Bench).
 ```text
 boards/<port>/<BOARD>/   board definitions (BOARD_DIR)
 modules/                 user C modules (rgbpanel: RGB panel scan-out with PIO + DMA;
-                         st_ltdc: LTDC and DMA2D on the STM32H743;
+                         st_ltdc: LTDC and DMA2D on the STM32H743, and MIPI-DSI on the F769;
                          esp_rgb: RGB panel on the ESP32-S3)
 python/                  frozen drivers (display_driver.py, gt911.py, ui.py, buzzer.py)
 examples/                small LVGL examples to run with mpremote
@@ -50,6 +52,7 @@ scripts/                 build scripts; UART flasher and script runner (STM32)
 patches/<project>/       patches to the pinned external sources, applied by scripts/build.sh
 tests/hil/               tests run on the board with mpremote; tests/host/ on the unix port
 docs/                    measurements, logs (docs/log/), credits, upstream reports
+hardware/                a printable box for the RP2350-Touch-LCD-4 (CadQuery, untested)
 ```
 
 ## License
