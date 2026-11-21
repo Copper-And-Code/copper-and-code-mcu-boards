@@ -55,6 +55,15 @@ void mp_lv_deinit_gc(void);
 
 #define BOUNCE_LINES (20)
 
+// Drive strength of the 16 data lines. At the default (2, about 20 mA) the ESP32-4848S040 showed
+// coloured specks where many bits change from one pixel to the next: single-pixel lines at a
+// quarter, half and three quarters of a grey ramp, red and green sparkles along the edges of
+// photos. At 1 (about 10 mA) or 0 the ramp and the photos are clean; 10 MHz instead of 12, or the
+// other clock edge, changed nothing. A board can set its own value in mpconfigboard.h.
+#ifndef MICROPY_HW_RGB_DATA_DRIVE
+#define MICROPY_HW_RGB_DATA_DRIVE (GPIO_DRIVE_CAP_1)
+#endif
+
 static struct {
     esp_lcd_panel_handle_t panel;
     int width, height, buffers, shown, backlight;
@@ -236,6 +245,9 @@ static mp_obj_t esp_rgb_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
     }
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     check(start.err);
+    for (int i = 0; i < 16; i++) {  // after esp_lcd has routed the pins: it sets the default
+        gpio_set_drive_capability(cfg.data_gpio_nums[i], MICROPY_HW_RGB_DATA_DRIVE);
+    }
     esp_lcd_panel_handle_t panel = start.panel;
     if (buffers == 2) {
         check(esp_lcd_rgb_panel_get_frame_buffer(panel, 2, &st.fb[0], &st.fb[1]));
