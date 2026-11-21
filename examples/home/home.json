@@ -1,0 +1,13 @@
+{"apps": [
+  {"name": "Weather", "path": "/sd/apps/weather.py"},
+  {"name": "Settings", "path": "/lms_apps/app_265fef53d674/app_main.py"},
+  {"name": "Forecast", "path": "/lms_apps/app_1130d29ac8f6/app_main.py"},
+  {"name": "EIM-01 (Studio)", "path": "/lms_apps/app_3b2aeb9e75ab/app_main.py"},
+  {"name": "Games", "apps": [
+    {"name": "Snake", "path": "/sd/apps/snake.py"},
+    {"name": "Breakout", "path": "/sd/apps/breakout.py"},
+    {"name": "Pong", "path": "/sd/apps/pong.py"},
+    {"name": "Simon", "path": "/sd/apps/simon.py"},
+    {"name": "Tic-tac-toe", "path": "/sd/apps/tictactoe.py"}
+  ]}
+]}

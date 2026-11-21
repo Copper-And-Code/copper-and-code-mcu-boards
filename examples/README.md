@@ -22,6 +22,7 @@ STM32H7_CORE V1.3 on the bench (CH340 on UART1, DTR/RTS wired to BOOT0/NRST):
 | [tictactoe.py](tictactoe.py) | a game: you (X) against the microcontroller (O, minimax: it never loses) |
 | [shell/](shell/) | a Linux-like shell on the screen, keyboard from a terminal on the serial port: files, pipes, wildcards, history, Tab; with `vi` and a friendlier `edit`, and an ANSI terminal module for your own programs. The font in `ansifont.py` is under the [SIL OFL](shell/OFL.txt). Goes in `/` (`shell.py`, `ansiterm.py`, `ansifont.py`) and `/bin` (`vi.py`, `edit.py`), then `import shell; shell.main()`. On the RP2350 (no PSRAM) copy `shell`, `ansiterm` and `ansifont` compiled with `mpy-cross` (`.mpy`): compiled on the board they leave too little heap for the terminal's 115 KB framebuffer (MemoryError) |
 | [weather.py](weather.py) | ESP32-4848S040 only: weather, wind and 5 days of forecast from Open-Meteo, with drawn icons, setup on the touchscreen and settings on the SD card |
+| [home/](home/README.md) | ESP32-4848S040 only: the shell at power-on and a touch menu of apps (weather, games, Copper and Code Studio apps), each started alone after a reset; everything on the SD card but `main.py` |
 
 Any resolution: sizes are written for a 240 px display and scaled with `ui.px(n)`
 (`python/ui.py`: `n` times the shorter side / 240, so unchanged on the RP2350 board),

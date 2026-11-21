@@ -1,0 +1,30 @@
+# 2026-11-21 ESP32-4848S040 MAC dc:b4:d9:04:87:c0 (the second board), CH340 on /dev/ttyUSB0
+# identified with esptool read_mac (ESP32-S3 QFN56 rev v0.2); firmware MicroPython 0fd6c573ea on 2026-11-14 (v0.1.7)
+# the home of examples/home put on the SD card (16 GB FAT; it held only weather.json, not opened)
+
+Before: /main.py started the shell from the flash (shell.py, ansiterm.py, ansifont.py, /bin/vi.py, /bin/edit.py),
+two Studio apps in /lms_apps: app_3b2aeb9e75ab (EIM-01, 480x480), app_d7459338c3f3 (Meteo, 480x480). Left as they were.
+
+Written, each through uart_run.py --soft-reset (LVGL stopped during the transfer), sha256 checked on the board:
+/sd/lib/home.py 7664 ok          /sd/apps/weather.py 28088 ok    /sd/apps/pong.py 6668 ok
+/sd/lib/shell.py 30725 ok        /sd/apps/settings.py 9571 ok    /sd/apps/simon.py 5066 ok
+/sd/lib/ansiterm.py 21421 ok     /sd/apps/snake.py 7871 ok       /sd/apps/tictactoe.py 4738 ok
+/sd/lib/ansifont.py 2741 ok      /sd/apps/breakout.py 7110 ok    /sd/home.json 548 ok
+/sd/bin/vi.py 34154 ok           /sd/bin/edit.py 19098 ok        /sd/lib/OFL.txt 4480 ok
+/main.py 961 ok (examples/home/main.py); the old one kept as /main_shell.py 277 ok
+(a first copy of the backup was empty, written without closing the file; rewritten from its known content)
+
+Every app and module compiled on the board (compile()).
+
+Boot without /home.next: "MicroPython shell, `help` lists the commands," and the prompt, from /sd/lib.
+Each app started as the menu does (/home.next written, board reset by opening the port), console for 16 s:
+/sd/apps/settings.py                      home: running ..., no error (its own loop)
+/sd/apps/snake.py, breakout, pong, simon, tictactoe   home: running ..., then the REPL, no error
+/lms_apps/app_d7459338c3f3/app_main.py    LVGL_MPY_STUDIO_APP_READY buffers=2 touch=True
+/lms_apps/app_3b2aeb9e75ab/app_main.py    LVGL_MPY_STUDIO_APP_READY buffers=2 touch=True
+/sd/apps/weather.py                       settings loaded from /sd/weather.json, SD ok
+Left running: weather.py. Not yet checked by eye: the menu on a tap, the home button, the Settings pages.
+
+# later on 2026-11-21, not in this test: examples/home was changed in another session (folders in the
+# menu, "Games"; Settings and Forecast from Copper and Code Studio's examples with cac_settings.py instead
+# of examples/home/settings.py, which was removed). Not checked on the board in this session.
