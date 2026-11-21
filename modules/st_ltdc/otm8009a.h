@@ -6,7 +6,7 @@
   *          which is the LCD Driver for KoD KM-040TMP-02-0621 (WVGA)
   *          DSI LCD Display.
   ******************************************************************************
-  * @note    mpy-lvgl-boards: from STMicroelectronics/stm32-otm8009a v1.0.5, unchanged.
+  * @note    copper-and-code-mcu-boards: from STMicroelectronics/stm32-otm8009a v1.0.5, unchanged.
   ******************************************************************************
   * @attention
   *

@@ -3,7 +3,7 @@
 // To use openocd run "OPENOCD_CONFIG=boards/openocd_stm32f7.cfg" in
 // the make command.
 // STM32F769I-DISCO (MB1225B) with the MB1166 DSI display: MicroPython's STM32F769DISC with the
-// SDRAM on (the GC heap there) and LVGL. Out-of-tree board of mpy-lvgl-boards.
+// SDRAM on (the GC heap there) and LVGL. Out-of-tree board of copper-and-code-mcu-boards.
 #define MICROPY_HW_BOARD_NAME       "STM32F769I-DISCO"
 
 // The MB1166 display (modules/st_ltdc): an OTM8009A on a 2-lane MIPI-DSI link in video

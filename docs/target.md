@@ -27,11 +27,11 @@ the RP2350 inputs up to v0.1.5.
 
 ```text
 work/
-  micropython/        v1.29.0, rp2 + unix submodules
-  omnipython-lvgl/    PyDevices, at OPL_SHA, with lvgl submodule
-  mpy-lvgl-boards/    this repo
-  tools/              xPack toolchain
-../RP2350Touch4-Exp/  reference C demo (read only)
+  micropython/                 v1.29.0, rp2 + unix submodules
+  omnipython-lvgl/             PyDevices, at OPL_SHA, with lvgl submodule
+  copper-and-code-mcu-boards/  this repo
+  tools/                       xPack toolchain
+../RP2350Touch4-Exp/           reference C demo (read only)
 ```
 
 ## Build commands
@@ -41,9 +41,9 @@ work/
 
 ```bash
 export PATH=$PWD/tools/xpack-arm-none-eabi-gcc-15.2.1-1.1/bin:$PATH
-B=$PWD/mpy-lvgl-boards/boards/rp2/WAVESHARE_RP2350_TOUCH_LCD_4
+B=$PWD/copper-and-code-mcu-boards/boards/rp2/WAVESHARE_RP2350_TOUCH_LCD_4
 
-# with LVGL (default manifest; omnipython-lvgl beside mpy-lvgl-boards, or
+# with LVGL (default manifest; omnipython-lvgl beside copper-and-code-mcu-boards, or
 # LVMP_DIR=<omnipython-lvgl>/ports/micropython)
 make -C micropython/ports/rp2 BOARD_DIR=$B BUILD=build-TLCD4 -j
 

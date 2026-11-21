@@ -1,5 +1,5 @@
 /*
-    STM32F769I-DISCO (mpy-lvgl-boards): MicroPython's boards/stm32f769.ld with FLASH at 2 MB
+    STM32F769I-DISCO (copper-and-code-mcu-boards): MicroPython's boards/stm32f769.ld with FLASH at 2 MB
     instead of 1 MB, for LVGL; the filesystem is in the QSPI flash, FLASH_FS stays unused.
     GNU linker script for STM32F769
 */

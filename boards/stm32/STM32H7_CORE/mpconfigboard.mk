@@ -36,7 +36,7 @@ FROZEN_MANIFEST ?= $(BOARD_DIR)/manifest.py
 # The C module and manifest of omnipython-lvgl (PyDevices), its ports/micropython,
 # used as $(LVMP_DIR) in manifest.py. Default: $LVMP_DIR from the environment
 # (scripts/build.sh sets it), else the workspace layout, with omnipython-lvgl beside
-# mpy-lvgl-boards.
+# copper-and-code-mcu-boards.
 ifneq ($(LVMP_DIR),)
 MICROPY_MANIFEST_LVMP_DIR ?= $(LVMP_DIR)
 else

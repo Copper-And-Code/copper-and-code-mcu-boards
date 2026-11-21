@@ -1,4 +1,4 @@
-# mpy-lvgl-boards
+# copper-and-code-mcu-boards
 
 MicroPython + LVGL firmware for boards that upstream MicroPython does not cover, built as
 out-of-tree boards and user C modules: no fork of MicroPython or of the LVGL binding

@@ -5,7 +5,7 @@
   * @brief   This file provides the LCD Driver for KoD KM-040TMP-02-0621 (WVGA)
   *          DSI LCD Display OTM8009A.   
   ******************************************************************************
-  * @note    mpy-lvgl-boards: from STMicroelectronics/stm32-otm8009a v1.0.5 (the version
+  * @note    copper-and-code-mcu-boards: from STMicroelectronics/stm32-otm8009a v1.0.5 (the version
   *          the STM32F769I-DISCO BSP uses), unchanged but for the weak stub removed below.
   ******************************************************************************
   * @attention
@@ -179,7 +179,7 @@ const uint8_t ShortRegData51[] = {0xC6, 0x05};
   * @brief  DSI IO write short/long command.
   * @note : Can be surcharged by application code implementation of the function.
   */
-/* mpy-lvgl-boards: ST's weak DSI_IO_WriteCmd() stub is removed here;
+/* copper-and-code-mcu-boards: ST's weak DSI_IO_WriteCmd() stub is removed here;
    modules/st_ltdc/st_ltdc.c implements DSI_IO_WriteCmd() and OTM8009A_IO_Delay(). */
 
 /**
