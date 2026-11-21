@@ -1,0 +1,71 @@
+site_name: copper-and-code-mcu-boards
+site_description: MicroPython and LVGL firmware for microcontroller boards with a touch screen
+site_url: https://copper-and-code.github.io/copper-and-code-mcu-boards/
+# Keep the repository link in content: Material's repository widget calls the GitHub API.
+repo_url: ""
+docs_dir: docs
+site_dir: build/site
+exclude_docs: |
+  log/
+  upstream/
+  handover-*.md
+  stm32-inventory.md
+
+hooks:
+  - mkdocs_hooks.py
+
+theme:
+  name: material
+  font: false
+  logo: images/logo.svg
+  favicon: images/logo.svg
+  features:
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences
+  - tables
+  - toc:
+      permalink: true
+
+extra_css:
+  - stylesheets/site.css
+
+nav:
+  - Home: index.md
+  - Boards:
+      - Waveshare RP2350-Touch-LCD-4: boards/rp2350-touch-lcd-4.md
+      - STM32H743 boards: stm32h743.md
+      - ESP32-4848S040: esp32-4848s040.md
+  - Installing with DFU (STM32): flash-dfu.md
+  - The display_driver contract: display-driver.md
+  - Examples: examples.md
+  - Building: target.md
+  - "RP2350: performance and memory": rp2350-touch-lcd4.md
+  - "Hardware: a box for the RP2350 board": hardware/rp2350-touch-lcd4-box.md
+  - Credits: CREDITS.md
