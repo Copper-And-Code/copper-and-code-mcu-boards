@@ -203,7 +203,12 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_SDRAM_FREQUENCY_KHZ      (120000) // 120 MHz
 #define MICROPY_HW_SDRAM_REFRESH_CYCLES     8192
 
+#if defined(BOARD_V13)
+// RM0433 requires device burst length 1; W9825G6KH mode code 100 is reserved.
+#define MICROPY_HW_SDRAM_BURST_LENGTH       1
+#else
 #define MICROPY_HW_SDRAM_BURST_LENGTH       8
+#endif
 #define MICROPY_HW_SDRAM_CAS_LATENCY        3
 #define MICROPY_HW_SDRAM_COLUMN_BITS_NUM    9
 #define MICROPY_HW_SDRAM_ROW_BITS_NUM       13
