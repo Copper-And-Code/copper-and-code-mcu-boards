@@ -2,8 +2,10 @@
 
 At power-on the [shell](../shell/) on the display, with the keyboard of the serial terminal. A tap on
 the terminal opens a menu of apps; a tap on an app resets the board and starts that app alone, with
-all the memory. The home button at the top centre brings the shell back the same way. An entry of
-the menu can be a folder (such as "Games") with a menu of its own. Everything but `main.py` lives on
+all the memory. The home button brings the shell back the same way. It is hidden while the app
+runs, so that it covers nothing and takes none of the app's touches: a pull down from the top edge
+of the screen shows it at the top centre for three seconds (and it shows for the first three
+seconds of every app, as a hint). An entry of the menu can be a folder (such as "Games") with a menu of its own. Everything but `main.py` lives on
 the SD card.
 
 Ported from `mpy_home` of [copper-and-code-linux-boards](https://github.com/Copper-And-Code/copper-and-code-linux-boards).
@@ -30,7 +32,7 @@ Also on the card:
 it to `/lms_apps/` on the flash: Settings, Forecast (the Studio's examples `settings` and
 `forecast`) and EIM-01. The folder names in `/lms_apps/` are the ones the Studio gave on this
 board: after an upload of your own, put yours in `home.json`, or remove those entries. A missing app
-shows its error on the screen, and the home button goes back.
+shows its error on the screen; the home button, pulled down from the top edge, goes back.
 
 The brightness and the Wi-Fi networks come from `cac_settings.py`, the shared settings of the
 Studio's apps (`/cac_settings.json` on the flash, written by its Settings app). The home sets the

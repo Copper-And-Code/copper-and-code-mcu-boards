@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: MIT
 # The ESP32-4848S040's home, on the SD card: at power-on the shell on the display (keyboard from
 # the serial terminal); a tap on the terminal opens a menu of apps. An app runs alone after a
-# reset of the board, and the home button at the top brings the shell back the same way.
+# reset of the board, and the home button brings the shell back the same way. The home button is
+# hidden while the app runs, so that it covers nothing: a pull down from the top edge of the screen
+# shows it at the top centre for a few seconds.
 #
 # Ported from mpy_home of lvgl-mpy-linux. The apps of the menu are in /sd/home.json, each a
 # Python file on the board and a name:
@@ -30,6 +32,7 @@
 import json
 import os
 import sys
+import time
 
 import lvgl as lv
 import machine
@@ -191,17 +194,57 @@ def _hook_terminal():
     ansiterm.Terminal.build = build_and_hook
 
 
+HOME_SHOW_MS = 3000  # the home button stays this long after a pull from the top edge
+EDGE = 24  # a pull begins this close to the top edge
+PULL = 40  # and goes down at least this much
+
+_home = None
+_touch = None
+_point = None
+_pull_from = None  # y where a touch began at the top edge, while it lasts
+_was_pressed = False
+_hide_at = 0
+
+
 def _home_button():
-    # A small tab at the top centre, over every screen of the app.
+    # The home button is hidden while the app runs, so it covers nothing of the app and takes none
+    # of its touches. A pull down from the top edge of the screen shows it at the top centre, over
+    # every screen, for HOME_SHOW_MS; a tap on it goes home. It is shown too for the first seconds
+    # of the app, as a hint. A timer reads the touch screen directly instead of an object catching
+    # touches: the app gets every touch as before.
+    global _home, _touch, _point, _hide_at
     b = lv.button(lv.layer_top())
-    b.set_size(64, 30)
+    b.set_size(96, 44)
     b.align(lv.ALIGN.TOP_MID, 0, 0)
-    b.set_style_radius(8, 0)
+    b.set_style_radius(10, 0)
     b.set_style_bg_color(lv.color_hex(0x000000), 0)
-    b.set_style_bg_opa(140, 0)
+    b.set_style_bg_opa(170, 0)
     b.set_style_shadow_width(0, 0)
-    _label(b, lv.SYMBOL.HOME, 16, 0xFFFFFF).center()
+    _label(b, lv.SYMBOL.HOME, 24, 0xFFFFFF).center()
     b.add_event_cb(lambda e: go_home(), lv.EVENT.CLICKED, None)
+    _home = b
+    _point = lv.point_t()
+    _touch = getattr(display_driver, "indev", None)  # the GT911, None without a touch screen
+    _hide_at = time.ticks_add(time.ticks_ms(), HOME_SHOW_MS)
+    lv.timer_create(_watch_touch, 30, None)
+
+
+def _watch_touch(timer):
+    global _pull_from, _was_pressed, _hide_at
+    now = time.ticks_ms()
+    pressed = _touch is not None and _touch.get_state() == lv.INDEV_STATE.PRESSED
+    if pressed:
+        _touch.get_point(_point)
+        if not _was_pressed:
+            _pull_from = _point.y if _point.y <= EDGE else None
+        elif _pull_from is not None and _point.y - _pull_from >= PULL:
+            _pull_from = None
+            _touch.wait_release()  # the rest of this touch is the pull's: nothing of the app gets a click
+            _hide_at = time.ticks_add(now, HOME_SHOW_MS)
+            _home.remove_flag(lv.obj.FLAG.HIDDEN)
+    _was_pressed = pressed
+    if not pressed and time.ticks_diff(_hide_at, now) <= 0 and not _home.has_flag(lv.obj.FLAG.HIDDEN):
+        _home.add_flag(lv.obj.FLAG.HIDDEN)
 
 
 def _brightness():
@@ -226,7 +269,7 @@ def _wifi():
 def _failed(path, error):
     screen = lv.obj()
     screen.set_style_bg_color(lv.color_hex(BACK), 0)
-    note = _label(screen, "%s\n\n%s\n\nThe home button goes back." % (path, repr(error)), 16, 0xFFFFFF)
+    note = _label(screen, "%s\n\n%s\n\nPull down from the top edge for the home button." % (path, repr(error)), 16, 0xFFFFFF)
     note.set_width(W - 40)
     note.set_long_mode(lv.label.LONG_MODE.WRAP)
     note.center()
