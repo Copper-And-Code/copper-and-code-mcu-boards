@@ -8,6 +8,11 @@ of the screen shows it at the top centre for three seconds (and it shows for the
 seconds of every app, as a hint). An entry of the menu can be a folder (such as "Games") with a menu of its own. Everything but `main.py` lives on
 the SD card.
 
+At power-on an app can start instead of the shell: the one chosen on the Start page of the Settings
+app of Copper and Code Studio, or else the one that `home.json` names in `"start"`. For two seconds
+the screen names it, and a touch then gives the shell instead: the way out of an app that does not
+let the board be used. The home button of an app always goes to the shell.
+
 Ported from `mpy_home` of [copper-and-code-linux-boards](https://github.com/Copper-And-Code/copper-and-code-linux-boards).
 Tested on the ESP32-4848S040 with firmware v0.1.7.
 
@@ -15,30 +20,32 @@ Tested on the ESP32-4848S040 with firmware v0.1.7.
 |---|---|---|
 | [main.py](main.py) | `/main.py` | mounts the card, starts `/sd/lib/home.py`; without a card, the shell of the flash as before |
 | [home.py](home.py) | `/sd/lib/home.py` | the home: shell, menus, start of the apps, home button |
-| [home.json](home.json) | `/sd/home.json` | the menu: a name and a path for each app, or a name and `apps` for a folder |
+| [home.json](home.json) | `/sd/home.json` | the menu: a name and a path for each app, or a name and `apps` for a folder; `"start"`, the path of the app of power-on |
 
 Also on the card:
 
 - `/sd/lib/`: `shell.py`, `ansiterm.py`, `ansifont.py` (and `OFL.txt`) from [examples/shell](../shell/);
 - `/sd/bin/`: `vi.py`, `edit.py`, from the same folder;
-- `/sd/apps/`: [weather.py](../weather.py) and the games [snake.py](../snake.py),
+- `/sd/apps/`: the games [snake.py](../snake.py),
   [breakout.py](../breakout.py), [pong.py](../pong.py), [simon.py](../simon.py),
   [tictactoe.py](../tictactoe.py).
 
 ## Copper and Code Studio's apps
 
-`home.json` here also lists three apps made with
-[Copper and Code Studio](https://github.com/Copper-And-Code/copper-and-code-studio) and uploaded by
-it to `/lms_apps/` on the flash: Settings, Forecast (the Studio's examples `settings` and
-`forecast`) and EIM-01. The folder names in `/lms_apps/` are the ones the Studio gave on this
-board: after an upload of your own, put yours in `home.json`, or remove those entries. A missing app
-shows its error on the screen; the home button, pulled down from the top edge, goes back.
+`home.json` here lists apps made with
+[Copper and Code Studio](https://github.com/Copper-And-Code/copper-and-code-studio), each in a
+folder of `/sd/apps`: Settings, Forecast, EIM-01, FTP Server and Photo Frame, and games in the
+Games folder. The Studio's `tools/esp32_sd.py` fills a card that way, with this home, the shell,
+the games of `examples/` and those apps, and writes the menu for them; it brings a card up to date
+too, writing only what changed. An app uploaded from the Studio instead goes to `/lms_apps/` on the
+flash: put its path in `home.json`. A missing app shows its error on the screen; the home button,
+pulled down from the top edge, goes back.
 
 The brightness and the Wi-Fi networks come from `cac_settings.py`, the shared settings of the
 Studio's apps (`/cac_settings.json` on the flash, written by its Settings app). The home sets the
 brightness at every start and, before an app, connects to the best saved network in range. Without
-`cac_settings.py` on the board the home works all the same, without either. The weather app keeps
-its own network in `/sd/weather.json`.
+`cac_settings.py` on the board the home works all the same, without either. The Settings app also
+keeps there the app of power-on, in the section `home`.
 
 ## How it starts an app
 
