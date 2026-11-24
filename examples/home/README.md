@@ -20,7 +20,7 @@ Tested on the ESP32-4848S040 with firmware v0.1.7.
 |---|---|---|
 | [main.py](main.py) | `/main.py` | mounts the card, starts `/sd/lib/home.py`; without a card, the shell of the flash as before |
 | [home.py](home.py) | `/sd/lib/home.py` | the home: shell, menus, start of the apps, home button |
-| [home.json](home.json) | `/sd/home.json` | the menu: a name and a path for each app, or a name and `apps` for a folder; `"start"`, the path of the app of power-on |
+| [home.json](home.json) | `/sd/home.json` | the menu: a name and a path for each app, or a name and `apps` for a folder, and a `"name_it"` for Italian; `"start"`, the path of the app of power-on |
 
 Also on the card:
 
@@ -45,7 +45,9 @@ The brightness and the Wi-Fi networks come from `cac_settings.py`, the shared se
 Studio's apps (`/cac_settings.json` on the flash, written by its Settings app). The home sets the
 brightness at every start and, before an app, connects to the best saved network in range. Without
 `cac_settings.py` on the board the home works all the same, without either. The Settings app also
-keeps there the app of power-on, in the section `home`.
+keeps there the app of power-on, in the section `home`, and the language, in the section `general`:
+the home and the games of `examples/` speak English or Italian with it. An app gets its own copy of
+`cac_settings.py`, from its folder: the one `boot.py` imported from the flash may be older.
 
 ## How it starts an app
 

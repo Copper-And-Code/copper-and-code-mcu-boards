@@ -12,7 +12,8 @@
 #             {"name": "Games", "apps": [{"name": "Snake", "path": "/sd/apps/snake.py"}]}]}
 #
 # An entry with "apps" instead of "path" is a folder: its tile opens a menu of its own apps, with
-# a tile to go back.
+# a tile to go back. An entry can have a "name_it" too, its name when the board speaks Italian:
+# the language is the one chosen in the Settings app of Copper and Code Studio.
 #
 # A Copper and Code Studio app is given by the entry point the Studio uploaded (app_main.py).
 #
@@ -62,9 +63,41 @@ def _cac_settings():
     try:
         import cac_settings
 
+        if not hasattr(cac_settings, "language"):  # boot.py took an older copy, from the flash
+            sys.modules.pop("cac_settings", None)
+            import cac_settings
         return cac_settings
     except ImportError:
         return None
+
+
+IT = {
+    "Apps": "App",
+    "Back": "Indietro",
+    "Starting...": "Avvio...",
+    "Touch the screen for the shell": "Tocca lo schermo per la shell",
+    "No apps: add them to /sd/home.json": "Nessuna app: aggiungile in /sd/home.json",
+    "Pull down from the top edge for the home button.": "Trascina giu' dal bordo in alto per la casetta.",
+}
+_italian = None
+
+
+def _t(text):
+    """text in the language chosen in the Settings app, English or Italian: English without it."""
+    global _italian
+    if _italian is None:
+        shared = _cac_settings()
+        try:
+            _italian = shared is not None and shared.language() == "it"
+        except AttributeError:  # a cac_settings.py from before the language
+            _italian = False
+    return IT.get(text, text) if _italian else text
+
+
+def _app_name(app):
+    """The name of an app or a folder of the menu: its "name_it" in Italian, when the menu has one."""
+    _t("")
+    return app.get("name_it", app["name"]) if _italian else app["name"]
 
 
 def _valid(listed):
@@ -109,7 +142,7 @@ def _name_of(path, listed=None):
     """The name the menu gives to path, else its folder or file name."""
     for app in listed if listed is not None else apps():
         if app.get("path") == path:
-            return app["name"]
+            return _app_name(app)
         if app.get("apps"):
             name = _name_of(path, _valid(app["apps"]))
             if name:
@@ -126,7 +159,7 @@ def _shell_asked(path):
     screen.set_style_bg_color(lv.color_hex(BACK), 0)
     title = _label(screen, lv.SYMBOL.PLAY + "  " + _name_of(path), 24, 0xFFFFFF)
     title.align(lv.ALIGN.CENTER, 0, -24)
-    note = _label(screen, "Touch the screen for the shell", 16, 0x9AA6B8)
+    note = _label(screen, _t("Touch the screen for the shell"), 16, 0x9AA6B8)
     note.align(lv.ALIGN.CENTER, 0, 24)
     lv.screen_load(screen)
     lv.refr_now(None)
@@ -161,7 +194,7 @@ def _restart():
     # A word on the screen first: the reset and the start of the next program take a few seconds.
     screen = lv.obj()
     screen.set_style_bg_color(lv.color_hex(BACK), 0)
-    _label(screen, lv.SYMBOL.REFRESH + "  Starting...", 24, 0xFFFFFF).center()
+    _label(screen, lv.SYMBOL.REFRESH + "  " + _t("Starting..."), 24, 0xFFFFFF).center()
     lv.screen_load(screen)
     lv.refr_now(None)
     try:
@@ -220,7 +253,7 @@ def _build_menu(folder):
     screen.set_style_bg_color(lv.color_hex(BACK), 0)
     screen.set_style_pad_all(12, 0)
     screen.remove_flag(lv.obj.FLAG.SCROLLABLE)
-    _label(screen, folder["name"] if folder else "Apps", 24, 0xFFFFFF).set_pos(4, 0)
+    _label(screen, _app_name(folder) if folder else _t("Apps"), 24, 0xFFFFFF).set_pos(4, 0)
     grid = lv.obj(screen)
     grid.set_size(lv.pct(100), H - 24 - 44)
     grid.set_pos(0, 40)
@@ -233,15 +266,15 @@ def _build_menu(folder):
     listed = _valid(folder["apps"]) if folder else apps()
     for app in listed:
         if app.get("path"):
-            _tile(grid, app["name"], TILE, lambda p=app["path"]: launch(p))
+            _tile(grid, _app_name(app), TILE, lambda p=app["path"]: launch(p))
         else:
-            _tile(grid, lv.SYMBOL.DIRECTORY + "  " + app["name"], FOLDER, lambda f=app: menu(f))
+            _tile(grid, lv.SYMBOL.DIRECTORY + "  " + _app_name(app), FOLDER, lambda f=app: menu(f))
     if folder:
-        _tile(grid, lv.SYMBOL.LEFT + "  Back", ACCENT, lambda: menu())
+        _tile(grid, lv.SYMBOL.LEFT + "  " + _t("Back"), ACCENT, lambda: menu())
     else:
         _tile(grid, lv.SYMBOL.KEYBOARD + "  Shell", ACCENT, _terminal)
     if not listed:
-        note = _label(screen, "No apps: add them to /sd/home.json", 14, 0x9AA6B8)
+        note = _label(screen, _t("No apps: add them to /sd/home.json"), 14, 0x9AA6B8)
         note.align(lv.ALIGN.BOTTOM_LEFT, 4, 0)
     return screen
 
@@ -339,7 +372,7 @@ def _wifi():
 def _failed(path, error):
     screen = lv.obj()
     screen.set_style_bg_color(lv.color_hex(BACK), 0)
-    note = _label(screen, "%s\n\n%s\n\nPull down from the top edge for the home button." % (path, repr(error)), 16, 0xFFFFFF)
+    note = _label(screen, "%s\n\n%s\n\n%s" % (path, repr(error), _t("Pull down from the top edge for the home button.")), 16, 0xFFFFFF)
     note.set_width(W - 40)
     note.set_long_mode(lv.label.LONG_MODE.WRAP)
     note.center()
@@ -352,6 +385,7 @@ def run_app(path):
         sys.path.insert(0, folder)
     _wifi()
     _home_button()  # first: some apps never return (their own loop)
+    sys.modules.pop("cac_settings", None)  # the app imports its own copy, from its folder, first in sys.path
     try:
         with open(path) as source:
             code = source.read()

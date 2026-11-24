@@ -10,6 +10,26 @@ import lvgl as lv
 import display_driver
 import ui
 
+try:
+    import cac_settings  # the language chosen in the Settings app of Copper and Code Studio
+
+    ITALIAN = cac_settings.language() == "it"
+except (ImportError, AttributeError, OSError):
+    ITALIAN = False
+IT = {
+    'Thinking...': 'Ci penso...',
+    'You %d  MCU %d  = %d': 'Tu %d  MCU %d  = %d',
+    'Your turn': 'Tocca a te',
+    'Draw!': 'Pari!',
+    'You win!': 'Hai vinto!',
+    'I win!': 'Ho vinto io!',
+}
+
+
+def t(text):
+    return IT.get(text, text) if ITALIAN else text
+
+
 W, H = display_driver.WIDTH, display_driver.HEIGHT
 
 LINES = ((0, 1, 2), (3, 4, 5), (6, 7, 8),
@@ -111,7 +131,7 @@ def on_cell(e, i):
         return
     play(i, USER)
     if not game_over:
-        status.set_text("Thinking...")
+        status.set_text(t("Thinking..."))
         lv.refr_now(None)  # show the user's move before the search
         play(mcu_move(), MCU)
 
@@ -133,7 +153,7 @@ for i in range(9):
 
 def show_status(text):
     status.set_text(text)
-    points.set_text("You %d  MCU %d  = %d" % (score[USER], score[MCU], score["draw"]))
+    points.set_text(t("You %d  MCU %d  = %d") % (score[USER], score[MCU], score["draw"]))
 
 
 def play(i, player):
@@ -143,18 +163,18 @@ def play(i, player):
     marks[i].set_style_text_color(lv.color_hex(COLORS[player]), 0)
     w = winner(board)
     if w is None:
-        show_status("Your turn")
+        show_status(t("Your turn"))
         return
     game_over = True
     score[w] += 1
     if w == "draw":
-        show_status("Draw!")
+        show_status(t("Draw!"))
     else:
         for line in LINES:
             if all(board[k] == w for k in line):
                 for k in line:
                     cells[k].set_style_bg_color(lv.color_hex(0xFFEB3B), 0)
-        show_status("You win!" if w == USER else "I win!")
+        show_status(t("You win!") if w == USER else t("I win!"))
 
 
 def new_game():
@@ -165,7 +185,7 @@ def new_game():
         cells[i].set_style_bg_color(lv.color_hex(0xEEEEEE), 0)
     game_over = False
     if user_starts:
-        show_status("Your turn")
+        show_status(t("Your turn"))
     else:
         play(mcu_move(), MCU)
     user_starts = not user_starts

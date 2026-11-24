@@ -13,6 +13,22 @@ import buzzer
 import display_driver
 import ui
 
+try:
+    import cac_settings  # the language chosen in the Settings app of Copper and Code Studio
+
+    ITALIAN = cac_settings.language() == "it"
+except (ImportError, AttributeError, OSError):
+    ITALIAN = False
+IT = {
+    'Score %d\nBest %d\nTap': 'Punti %d\nRecord %d\nTocca',
+    'Simon\nTap': 'Simon\nTocca',
+}
+
+
+def t(text):
+    return IT.get(text, text) if ITALIAN else text
+
+
 SOUND = True  # the board's buzzer, if it has one (buzzer.py)
 
 W, H = display_driver.WIDTH, display_driver.HEIGHT
@@ -121,7 +137,7 @@ def game_over():
     global state, best
     state = "over"
     best = max(best, len(sequence) - 1)
-    set_centre("Score %d\nBest %d\nTap" % (len(sequence) - 1, best))
+    set_centre(t("Score %d\nBest %d\nTap") % (len(sequence) - 1, best))
     for i in range(4):
         light(i, False)
 
@@ -187,6 +203,6 @@ for i, p in enumerate(pads):
     p.add_event_cb(lambda e, i=i: on_pad(e, i), lv.EVENT.RELEASED, None)
 centre.add_event_cb(on_centre, lv.EVENT.CLICKED, None)
 
-set_centre("Simon\nTap")
+set_centre(t("Simon\nTap"))
 timer = lv.timer_create(on_tick, TICK, None)
 lv.screen_load(scr)

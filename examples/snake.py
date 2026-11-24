@@ -15,6 +15,23 @@ import buzzer
 import display_driver
 import ui
 
+try:
+    import cac_settings  # the language chosen in the Settings app of Copper and Code Studio
+
+    ITALIAN = cac_settings.language() == "it"
+except (ImportError, AttributeError, OSError):
+    ITALIAN = False
+IT = {
+    'Score %d   Best %d': 'Punti %d   Record %d',
+    'Game over\nScore %d\nTap to play': 'Fine partita\nPunti %d\nTocca per giocare',
+    'Snake\nTap to start': 'Snake\nTocca per iniziare',
+}
+
+
+def t(text):
+    return IT.get(text, text) if ITALIAN else text
+
+
 SOUND = True  # the board's buzzer, if it has one (buzzer.py)
 
 # Sizes for a 240 px display, scaled by ui.px(): the field keeps about the same
@@ -149,7 +166,7 @@ crash_left = 0
 
 
 def show_score():
-    score_label.set_text("Score %d   Best %d" % (score, best))
+    score_label.set_text(t("Score %d   Best %d") % (score, best))
 
 
 def show_msg(text):
@@ -195,7 +212,7 @@ def crash():
     state = "over"
     best = max(best, score)
     show_score()
-    show_msg("Game over\nScore %d\nTap to play" % score)
+    show_msg(t("Game over\nScore %d\nTap to play") % score)
     crash_left = CRASH_MS
 
 
@@ -271,6 +288,6 @@ def on_press(e):
 scr.add_event_cb(on_press, lv.EVENT.PRESSED, None)
 
 show_score()
-show_msg("Snake\nTap to start")
+show_msg(t("Snake\nTap to start"))
 timer = lv.timer_create(on_tick, 20, None)
 lv.screen_load(scr)

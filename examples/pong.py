@@ -15,6 +15,23 @@ import buzzer
 import display_driver
 import ui
 
+try:
+    import cac_settings  # the language chosen in the Settings app of Copper and Code Studio
+
+    ITALIAN = cac_settings.language() == "it"
+except (ImportError, AttributeError, OSError):
+    ITALIAN = False
+IT = {
+    'You win!': 'Hai vinto!',
+    'I win!': 'Ho vinto io!',
+    '\nTap to play': '\nTocca per giocare',
+}
+
+
+def t(text):
+    return IT.get(text, text) if ITALIAN else text
+
+
 SOUND = True  # the board's buzzer, if it has one (buzzer.py)
 
 # Sizes and speeds for a 240 px display, scaled by ui.px() / ui.UNIT.
@@ -185,7 +202,7 @@ def on_tick(timer):
         show_scores()
         if points[who] >= WIN:
             state, wait = "over", 1000
-            show_msg(("You win!" if who == 0 else "I win!") + "\nTap to play")
+            show_msg((t("You win!") if who == 0 else t("I win!")) + t("\nTap to play"))
             beep(880 if who == 0 else 110, 400)
             return
         beep(660 if who == 0 else 165, 150)

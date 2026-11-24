@@ -11,6 +11,24 @@ import buzzer
 import display_driver
 import ui
 
+try:
+    import cac_settings  # the language chosen in the Settings app of Copper and Code Studio
+
+    ITALIAN = cac_settings.language() == "it"
+except (ImportError, AttributeError, OSError):
+    ITALIAN = False
+IT = {
+    'Score %d   Lives %d   Level %d': 'Punti %d   Vite %d   Livello %d',
+    'Drag to move\nlift to launch': 'Trascina per muovere\nsolleva per lanciare',
+    'Level %d': 'Livello %d',
+    'Game over\nScore %d\nTap to play': 'Fine partita\nPunti %d\nTocca per giocare',
+}
+
+
+def t(text):
+    return IT.get(text, text) if ITALIAN else text
+
+
 SOUND = True  # the board's buzzer, if it has one (buzzer.py)
 
 # Sizes for a 240 px display, scaled by ui.px(); the wall gets more columns on
@@ -94,7 +112,7 @@ over_wait = 0                  # ms before a tap restarts after game over
 
 
 def show_score():
-    score_label.set_text("Score %d   Lives %d   Level %d" % (score, lives, level))
+    score_label.set_text(t("Score %d   Lives %d   Level %d") % (score, lives, level))
 
 
 def show_msg(text):
@@ -133,7 +151,7 @@ def new_game():
     score, lives, level, speed = 0, 3, 1, SPEED0
     reset_wall()
     show_score()
-    show_msg("Drag to move\nlift to launch")
+    show_msg(t("Drag to move\nlift to launch"))
     serve()
 
 
@@ -202,7 +220,7 @@ def on_tick(timer):
             speed = SPEED0 * (1 + 0.15 * (level - 1))
             reset_wall()
             show_score()
-            show_msg("Level %d" % level)
+            show_msg(t("Level %d") % level)
             serve()
             return
     bx, by = nx, ny
@@ -213,7 +231,7 @@ def on_tick(timer):
         beep(110, 300)
         if lives == 0:
             state, over_wait = "over", 1000
-            show_msg("Game over\nScore %d\nTap to play" % score)
+            show_msg(t("Game over\nScore %d\nTap to play") % score)
             return
         serve()
         return
