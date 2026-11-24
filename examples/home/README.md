@@ -11,7 +11,8 @@ the SD card.
 At power-on an app can start instead of the shell: the one chosen on the Start page of the Settings
 app of Copper and Code Studio, or else the one that `home.json` names in `"start"`. For two seconds
 the screen names it, and a touch then gives the shell instead: the way out of an app that does not
-let the board be used. The home button of an app always goes to the shell.
+let the board be used. The home button of an app always goes to the menu, with no shell behind it:
+its Shell tile starts the shell, after a reset as an app.
 
 Ported from `mpy_home` of [copper-and-code-linux-boards](https://github.com/Copper-And-Code/copper-and-code-linux-boards).
 Tested on the ESP32-4848S040 with firmware v0.1.7.

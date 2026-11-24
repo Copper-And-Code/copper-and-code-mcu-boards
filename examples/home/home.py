@@ -22,7 +22,7 @@
 # else the "start" of home.json, a path as in the list. An empty start, or a path that is not on
 # the board, keeps the shell. For START_WAIT_MS the screen names the app: a touch then gives the
 # shell instead, the way out of an app that does not let the board be used. The home button of
-# an app goes to the shell, not to the app of power-on.
+# an app goes to the menu, not to the app of power-on.
 #
 # The board starts the app with machine.reset(), not machine.soft_reset(): a soft reset works only
 # from the program's top level, and here the tap arrives in an LVGL callback while the shell waits
@@ -48,7 +48,8 @@ import machine
 import display_driver
 
 NEXT = "/home.next"  # in the flash: the SD card is mounted again only by main.py
-SHELL = "shell"  # in NEXT: the home button asked for the shell, and not for the app of power-on
+MENU = "menu"  # in NEXT: the home button asked for the menu, and not for the app of power-on
+SHELL = "shell"  # in NEXT: the Shell tile of the menu asked for the shell
 CONFIG = "/sd/home.json"
 START_WAIT_MS = 2000  # the app of power-on is named this long before it starts: a touch gives the shell
 W, H = display_driver.WIDTH, display_driver.HEIGHT
@@ -186,7 +187,7 @@ def launch(path):
 
 def go_home():
     with open(NEXT, "w") as target:
-        target.write(SHELL)  # the shell after the reset, and not the app of power-on
+        target.write(MENU)  # the menu after the reset, and not the app of power-on
     _restart()
 
 
@@ -231,9 +232,15 @@ _menus = {}  # the menus built, by folder name ("" for the first one): built onc
 
 
 def _terminal():
-    import ansiterm
+    # The shell: shown again if it runs behind the menu, else started by a reset, as an app is.
+    if "shell" in sys.modules:
+        import ansiterm
 
-    ansiterm.term.show()
+        ansiterm.term.show()
+    else:
+        with open(NEXT, "w") as target:
+            target.write(SHELL)
+        _restart()
 
 
 def menu(folder=None):
@@ -409,9 +416,13 @@ def main():
         path = start_app()
         if path and _shell_asked(path):
             path = None
-    if path and path != SHELL:
+    if path and path not in (MENU, SHELL):  # an app
         print("home: running", path)
         run_app(path)
+        return
+    if path == MENU:  # back from an app: the menu alone, with no shell; its Shell tile starts one
+        menu()
+        display_driver.start()
         return
     _hook_terminal()
     import shell
