@@ -2,7 +2,7 @@
 
 At power-on the [shell](../shell/) on the display, with the keyboard of the serial terminal. A tap on
 the terminal opens a menu of apps; a tap on an app resets the board and starts that app alone, with
-all the memory. The home button brings the shell back the same way. It is hidden while the app
+all the memory. The home button brings the menu back the same way. It is hidden while the app
 runs, so that it covers nothing and takes none of the app's touches: a pull down from the top edge
 of the screen shows it at the top centre for three seconds (and it shows for the first three
 seconds of every app, as a hint). An entry of the menu can be a folder (such as "Games") with a menu of its own. Everything but `main.py` lives on
