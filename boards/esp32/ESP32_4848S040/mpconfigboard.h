@@ -1,4 +1,6 @@
+#ifndef MICROPY_HW_BOARD_NAME  // a variant names itself
 #define MICROPY_HW_BOARD_NAME               "ESP32-4848S040"
+#endif
 #define MICROPY_HW_MCU_NAME                 "ESP32-S3"
 
 // The REPL is on UART0, through the board's USB-UART (CH340).
