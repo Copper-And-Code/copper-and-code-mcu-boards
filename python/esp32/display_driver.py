@@ -21,6 +21,7 @@
 
 import esp_rgb
 import gt911
+import os
 import lvgl as lv
 import micropython
 import panels
@@ -57,7 +58,14 @@ if disp is None:
 
 # GT911 reports panel pixels (its configuration holds the panel size).
 try:
-    touch = gt911.GT911(i2c=SoftI2C(scl=Pin(45), sda=Pin(19), freq=400_000), rst=None)
+    if "Velxio" in os.uname().machine:
+        # The Velxio simulator answers the GT911 on the I2C controller, not bit by bit.
+        from machine import I2C
+
+        _touch_i2c = I2C(0, scl=Pin(45), sda=Pin(19), freq=400_000)
+    else:
+        _touch_i2c = SoftI2C(scl=Pin(45), sda=Pin(19), freq=400_000)
+    touch = gt911.GT911(i2c=_touch_i2c, rst=None)
     indev = touch.lv_register()
 except OSError as e:
     touch = indev = None

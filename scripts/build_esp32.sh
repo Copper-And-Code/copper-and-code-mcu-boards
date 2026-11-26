@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build MicroPython + LVGL firmware for an ESP32 board of this repo.
 #
-#   scripts/build_esp32.sh <BOARD>      # the board lives in boards/esp32/<BOARD>
+#   scripts/build_esp32.sh <BOARD> [VARIANT]   # the board lives in boards/esp32/<BOARD>;
+#                                              # VARIANT: its mpconfigvariant_<VARIANT>.cmake
 #
 # Separate from scripts/build.sh: these boards use omnipython-lvgl, the successor of
 # the archived lvgl-micropython, and ESP-IDF instead of the arm toolchain.
@@ -15,7 +16,7 @@
 #   LVMP_POOLS "none" builds without LVGL's memory pools (modules/esp32_usermods.cmake),
 #              for comparisons, in its own build directory, output name -nopool.
 #
-# Output: dist/<BOARD>[-nopool]-<this repo commit>.bin, to write at offset 0, and its .sha256.
+# Output: dist/<BOARD>[-<VARIANT>][-nopool]-<this repo commit>.bin, to write at offset 0, and its .sha256.
 set -euo pipefail
 
 # --- pins (bump together, then re-run the hardware tests: docs/) ---
@@ -29,11 +30,13 @@ IDF_VER=5.5.2
 log() { printf '\n== %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
-[[ $# -eq 1 ]] || die "usage: $0 <BOARD>"
+[[ $# -ge 1 && $# -le 2 ]] || die "usage: $0 <BOARD> [VARIANT]"
 BOARD=$1
+VARIANT=${2:-}
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 BOARD_DIR=$REPO/boards/esp32/$BOARD
 [[ -f $BOARD_DIR/mpconfigboard.cmake ]] || die "no board $BOARD_DIR"
+[[ -z $VARIANT || -f $BOARD_DIR/mpconfigvariant_$VARIANT.cmake ]] || die "no variant $VARIANT of $BOARD"
 WORK_DIR=$(mkdir -p "${WORK_DIR:-$REPO/.work/esp32}" && cd "${WORK_DIR:-$REPO/.work/esp32}" && pwd)
 JOBS=${JOBS:-$(nproc)}
 # An index that does not answer makes every pip install of ESP-IDF crawl.
@@ -69,13 +72,14 @@ idf.py --version
 MPY=$WORK_DIR/micropython
 export OMNIPYTHON_LVGL_DIR=$WORK_DIR/omnipython-lvgl
 case ${LVMP_POOLS:-} in
-    "") NAME=$BOARD ;;
-    none) NAME=$BOARD-nopool ;;
+    "") NAME=$BOARD${VARIANT:+-$VARIANT} ;;
+    none) NAME=$BOARD${VARIANT:+-$VARIANT}-nopool ;;
     *) die "LVMP_POOLS: empty or none, not $LVMP_POOLS" ;;
 esac
 export LVMP_POOLS=${LVMP_POOLS:-}
 MAKE_ARGS=(BOARD_DIR="$BOARD_DIR" BUILD="build-$NAME"
     USER_C_MODULES="$REPO/modules/esp32_usermods.cmake")
+[[ -z $VARIANT ]] || MAKE_ARGS+=(BOARD_VARIANT="$VARIANT")
 log "submodules"
 make -C "$MPY/ports/esp32" "${MAKE_ARGS[@]}" submodules >/dev/null
 log "mpy-cross"

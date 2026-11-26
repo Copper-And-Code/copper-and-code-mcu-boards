@@ -14,6 +14,11 @@
 //
 // esp_lcd does not report FIFO underruns: underruns() and info() have none to give.
 //
+// MICROPY_HW_RGB_VELXIO (the board's VELXIO variant, for the Velxio simulator): no
+// panel and no ST7701; the framebuffers (PSRAM, outside the GC heap, kept across a soft
+// reset) are shown on the virtual RGB display of the emulator (QEMU's esp_rgb, registers
+// at 0x21000000), and a 60 Hz timer stands for the frame interrupt. Same interface.
+//
 // LVGL (when the firmware has the binding): lv_display_create() renders in DIRECT
 // mode into the framebuffers, lv_tick_install() gives LVGL the millisecond tick.
 // This port has no board hook at the end of a soft reset, where the other drivers
@@ -38,6 +43,24 @@
 #include "freertos/idf_additions.h"
 
 #include "st7701_init.h"
+
+#ifndef MICROPY_HW_RGB_VELXIO
+#define MICROPY_HW_RGB_VELXIO (0)
+#endif
+#if MICROPY_HW_RGB_VELXIO
+#include "esp_heap_caps.h"
+#include "esp_timer.h"
+// QEMU's esp_rgb display (hw/display/esp_rgb.h): window size, update area, address of the
+// pixels, update enable, bits per pixel. The update is done when the enable is written.
+#define VX_RGB_BASE         (0x21000000)
+#define VX_REG(off)         (*(volatile uint32_t *)(VX_RGB_BASE + (off)))
+#define VX_WIN_SIZE         (0x04)
+#define VX_UPDATE_FROM      (0x08)
+#define VX_UPDATE_TO        (0x0c)
+#define VX_UPDATE_CONTENT   (0x10)
+#define VX_UPDATE_STATUS    (0x14)
+#define VX_BPP              (0x18)
+#endif
 
 #if __has_include("lvgl/lvgl.h")
 #define ESP_RGB_LVGL (1)
@@ -72,11 +95,14 @@ static struct {
     volatile uint32_t frames;
 } st;
 
+#if !MICROPY_HW_RGB_VELXIO
 static bool IRAM_ATTR on_frame(esp_lcd_panel_handle_t panel, const esp_lcd_rgb_panel_event_data_t *edata, void *arg) {
     st.frames++;
     return false;
 }
+#endif
 
+#if !MICROPY_HW_RGB_VELXIO
 // --- ST7701: 9-bit SPI, written bit by bit, only before the panel starts ---
 
 static void st7701_bit(int level) {
@@ -119,6 +145,7 @@ static void st7701_send(void) {
         gpio_set_level(MICROPY_HW_RGB_SPI_CS, 1);
     }
 }
+#endif // !MICROPY_HW_RGB_VELXIO
 
 // --- module ---
 
@@ -134,12 +161,69 @@ static void set_backlight(int percent) {
 }
 
 static void panel_stop(void) {
+    #if MICROPY_HW_RGB_VELXIO
+    st.panel = NULL;  // the framebuffers stay, for the next init
+    #else
     if (st.panel != NULL) {
         esp_lcd_panel_del(st.panel);
         st.panel = NULL;
     }
+    #endif
 }
 
+#if MICROPY_HW_RGB_VELXIO
+static void show_buffer(int i);
+static esp_timer_handle_t vx_vsync;
+static void *vx_fb[2];
+static size_t vx_fb_bytes;
+
+static void vx_vsync_cb(void *arg) {
+    st.frames++;
+}
+
+// esp_rgb_init on the emulator: allocate (once per size) and show the framebuffers.
+static void vx_start(int width, int height, int buffers, uint32_t pclk_hz, int backlight) {
+    gpio_reset_pin(MICROPY_HW_RGB_BL);
+    gpio_set_direction(MICROPY_HW_RGB_BL, GPIO_MODE_OUTPUT);
+    gpio_set_level(MICROPY_HW_RGB_BL, 0);
+    size_t bytes = (size_t)width * height * 2;
+    if (vx_fb_bytes != bytes) {
+        for (int i = 0; i < 2; i++) {
+            heap_caps_free(vx_fb[i]);
+            vx_fb[i] = NULL;
+        }
+        vx_fb_bytes = 0;
+    }
+    for (int i = 0; i < buffers; i++) {
+        if (vx_fb[i] == NULL) {
+            vx_fb[i] = heap_caps_calloc(1, bytes, MALLOC_CAP_SPIRAM);
+            if (vx_fb[i] == NULL) {
+                check(ESP_ERR_NO_MEM);
+            }
+        }
+    }
+    vx_fb_bytes = bytes;
+    st.fb[0] = vx_fb[0];
+    st.fb[1] = buffers == 2 ? vx_fb[1] : NULL;
+    VX_REG(VX_WIN_SIZE) = ((uint32_t)width << 16) | height;
+    VX_REG(VX_BPP) = 16;
+    if (vx_vsync == NULL) {
+        const esp_timer_create_args_t args = { .callback = vx_vsync_cb, .name = "esp_rgb_vsync" };
+        check(esp_timer_create(&args, &vx_vsync));
+        check(esp_timer_start_periodic(vx_vsync, 16667));
+    }
+    st.panel = (esp_lcd_panel_handle_t)&st;  // running; there is no esp_lcd panel
+    st.width = width;
+    st.height = height;
+    st.buffers = buffers;
+    st.pclk_hz = pclk_hz;
+    st.htotal = st.vtotal = 0;
+    show_buffer(0);
+    set_backlight(backlight);
+}
+#endif
+
+#if !MICROPY_HW_RGB_VELXIO
 typedef struct {
     const esp_lcd_rgb_panel_config_t *cfg;
     TaskHandle_t caller;
@@ -163,6 +247,7 @@ static void panel_start_task(void *arg) {
     xTaskNotifyGive(a->caller);
     vTaskDelete(NULL);
 }
+#endif
 
 static mp_obj_t esp_rgb_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_width, ARG_height, ARG_hsync, ARG_hbp, ARG_hfp, ARG_vsync, ARG_vbp, ARG_vfp,
@@ -198,6 +283,10 @@ static mp_obj_t esp_rgb_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
         panel_stop();
     }
 
+    #if MICROPY_HW_RGB_VELXIO
+    vx_start(width, height, buffers, a[ARG_pclk_hz].u_int, a[ARG_backlight].u_int);
+    return mp_const_none;
+    #else
     gpio_reset_pin(MICROPY_HW_RGB_BL);
     gpio_set_direction(MICROPY_HW_RGB_BL, GPIO_MODE_OUTPUT);
     gpio_set_level(MICROPY_HW_RGB_BL, 0);
@@ -265,6 +354,7 @@ static mp_obj_t esp_rgb_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
     st.vtotal = height + cfg.timings.vsync_pulse_width + cfg.timings.vsync_back_porch + cfg.timings.vsync_front_porch;
     set_backlight(a[ARG_backlight].u_int);
     return mp_const_none;
+    #endif
 }
 static MP_DEFINE_CONST_FUN_OBJ_KW(esp_rgb_init_obj, 0, esp_rgb_init);
 
@@ -315,8 +405,16 @@ static mp_obj_t esp_rgb_wait_vsync(size_t n_args, const mp_obj_t *args) {
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(esp_rgb_wait_vsync_obj, 0, 1, esp_rgb_wait_vsync);
 
 static void show_buffer(int i) {
+    #if MICROPY_HW_RGB_VELXIO
+    // The whole buffer, from where it is: the emulator copies it when ENA is written.
+    VX_REG(VX_UPDATE_FROM) = 0;
+    VX_REG(VX_UPDATE_TO) = ((uint32_t)st.width << 16) | st.height;
+    VX_REG(VX_UPDATE_CONTENT) = (uint32_t)st.fb[i];
+    VX_REG(VX_UPDATE_STATUS) = 1;
+    #else
     // The address of one of its own framebuffers: esp_lcd only switches to it.
     check(esp_lcd_panel_draw_bitmap(st.panel, 0, 0, st.width, st.height, st.fb[i]));
+    #endif
     st.shown = i;
 }
 
