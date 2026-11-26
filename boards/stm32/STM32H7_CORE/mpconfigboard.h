@@ -36,6 +36,10 @@
 #include "../h743_bootloader.h"
 #if !defined(BOARD_VELXIO)
 #define MICROPY_HW_SDCARD_MOUNT_AT_BOOT         (1)
+#else
+// A littlefs in RAM on /flash when the QSPI flash cannot be mounted (Renode):
+// python/velxio_boot.py.
+#define MICROPY_BOARD_FROZEN_BOOT_FILE          "velxio_boot.py"
 #endif
 
 // LTDC display (modules/st_ltdc): pins (port, pin, alternate function) checked
