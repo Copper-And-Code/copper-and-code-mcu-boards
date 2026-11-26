@@ -1,5 +1,8 @@
 #if defined(BOARD_V10)
 #define MICROPY_HW_BOARD_NAME       "STM32H7_CORE V1.0"
+#elif defined(BOARD_V13) && defined(BOARD_VELXIO)
+// The V1.3 in the Velxio simulator (Renode): mpconfigvariant_VELXIO.mk.
+#define MICROPY_HW_BOARD_NAME       "STM32H7_CORE Velxio"
 #elif defined(BOARD_V13)
 #define MICROPY_HW_BOARD_NAME       "STM32H7_CORE V1.3"
 #endif
@@ -11,9 +14,15 @@
 #define MICROPY_HW_ENABLE_HW_I2C    (1)
 #define MICROPY_HW_ENABLE_ADC       (1)
 #define MICROPY_HW_ENABLE_DAC       (1)
+#if defined(BOARD_VELXIO)
+// Renode models neither the USB OTG nor an SD card: the REPL is on the UART only.
+#define MICROPY_HW_ENABLE_USB       (0)
+#define MICROPY_HW_ENABLE_SDCARD    (0)
+#else
 #define MICROPY_HW_ENABLE_USB       (1)
 #define MICROPY_HW_USB_HID          (1)
 #define MICROPY_HW_ENABLE_SDCARD    (1)
+#endif
 #define MICROPY_HW_HAS_FLASH        (1)
 #define MICROPY_HW_ENABLE_STORAGE   (1)
 
@@ -25,7 +34,9 @@
 // machine.bootloader(): USB DFU in the ROM bootloader, at 0x1ff09800 on the H743, not
 // at the 0x1ff00000 of the port (../h743_bootloader.c).
 #include "../h743_bootloader.h"
+#if !defined(BOARD_VELXIO)
 #define MICROPY_HW_SDCARD_MOUNT_AT_BOOT         (1)
+#endif
 
 // LTDC display (modules/st_ltdc): pins (port, pin, alternate function) checked
 // against boards/stm32h743_af.csv; framebuffers in the top MICROPY_HW_LTDC_FB_BYTES
@@ -141,6 +152,7 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_RCC_HSI48_STATE      (RCC_HSI48_ON)
 #define MICROPY_HW_RCC_USB_CLKSOURCE    (RCC_USBCLKSOURCE_HSI48)
 
+#if !defined(BOARD_VELXIO)
 #define MICROPY_HW_USB_FS           (1)
 #define MICROPY_HW_USB_HS           (0)
 #define MICROPY_HW_USB_HS_IN_FS     (0)
@@ -151,6 +163,7 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_USB_PRODUCT_FS_STRING          "STM32H7 Virtual Comm Port in FS Mode"
 #define MICROPY_HW_USB_INTERFACE_FS_STRING        "STM32H7 Interface"
 #define MICROPY_HW_USB_MSC_INQUIRY_PRODUCT_STRING "STM32H7 Flash   "
+#endif
 
 #if defined(BOARD_V10)
 #define MICROPY_HW_LED1             (pin_C13)

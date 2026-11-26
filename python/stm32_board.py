@@ -3,7 +3,8 @@
 #
 #   import stm32_board
 #   stm32_board.NAME          # "STM32H7_CORE V1.3", "STM32F769I-DISCO", ...
-#   t = stm32_board.touch()   # the board's touch controller (gt911.GT911, ft6x06.FT6x06)
+#   t = stm32_board.touch()   # the board's touch controller (gt911.GT911, ft6x06.FT6x06,
+#                             # velxio_touch.VelxioTouch in the Velxio simulator)
 #
 # The panel is chosen in /flash/display_config.py (PANEL = "RGB043M2"); without it,
 # the board's own ("MB1166" on the STM32F769I-DISCO) or IPS1024x600; see panels.py.
@@ -19,6 +20,8 @@ BOARDS = {
     "FK743M5-XIH6": {"touch": ("I10", "I11", ("G3", "G7"))},
     "STM32H7_CORE V1.0": {"touch": ("H7", "E3", 4)},
     "STM32H7_CORE V1.3": {"touch": ("B14", "H7", ("B12", "B13"))},
+    # The V1.3 in the Velxio simulator: touch from a mailbox (velxio_touch.py).
+    "STM32H7_CORE Velxio": {"touch": ("velxio",)},
     # MB1166 in landscape: x = raw y, y = 479 - raw x (docs/log/f769-phase3-2026-11-20.txt),
     # then scale and offset fitted to 21 touches (docs/log/f769-phase5-2026-11-20.txt).
     # audio: the WM8994 codec through audio.py (buzzer.py uses it).
@@ -72,6 +75,10 @@ def touch(**kw):
     OSError if it does not answer."""
     if "touch" not in CONFIG:
         raise OSError("no touch wiring known for %r" % os.uname().machine)
+    if CONFIG["touch"][0] == "velxio":
+        import velxio_touch
+
+        return velxio_touch.VelxioTouch(**kw)
     if CONFIG["touch"][0] == "ft6x06":
         import ft6x06
         from machine import I2C
