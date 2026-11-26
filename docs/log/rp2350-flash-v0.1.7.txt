@@ -1,0 +1,9 @@
+# 2026-11-14 00:20:13 RP2350-Touch-LCD-4 (USB serial fb05bfd14aef915b): flash of dist/WAVESHARE_RP2350_TOUCH_LCD_4-v0.1.7.uf2 sha256 8290d148, machine.bootloader() then copy to the RP2350 disk; rollback dist/WAVESHARE_RP2350_TOUCH_LCD_4-v0.1.6.uf2
+UF2 Bootloader v1.1
+Model: Raspberry Pi RP2350
+Board-ID: RP2350
+cp rc=0
+0fd6c573ea on 2026-11-14 (GNU 15.2.1 MinSizeRel) | Waveshare RP2350-Touch-LCD-4 with RP2350
+CONTRACT 1 240 240 2 True True
+/ 5 ['ansifont.mpy', 'ansiterm.mpy', 'bin', 'main.py', 'shell.mpy']
+>
