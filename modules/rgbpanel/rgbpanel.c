@@ -62,6 +62,10 @@ void mp_lv_deinit_gc(void);
 #define RGBPANEL_LVGL (0)
 #endif
 
+#ifndef MICROPY_HW_RGBPANEL_VELXIO
+#define MICROPY_HW_RGBPANEL_VELXIO (0)
+#endif
+
 #ifndef MICROPY_HW_RGBPANEL_SCALE
 #define MICROPY_HW_RGBPANEL_SCALE (0)
 #endif
@@ -97,6 +101,21 @@ void mp_lv_deinit_gc(void);
 
 #define BL_PWM_FREQ (20000)
 #define BL_PWM_WRAP (999)
+
+#if MICROPY_HW_RGBPANEL_VELXIO
+// Velxio variant: the panel is the emulator's (raspi-pico2, Copper-And-Code qemu),
+// a device that takes the framebuffer's address and shows it on SHOW, in place of
+// the PIO + DMA scan-out and the ST7701S. FRAMES counts 60 Hz frames.
+#define VX_PANEL_BASE (0x5ffd0000u)
+#define VX_PANEL_REG(off) (*(volatile uint32_t *)(VX_PANEL_BASE + (off)))
+#define VX_PANEL_FB_ADDR (0x04)
+#define VX_PANEL_WIDTH (0x08)
+#define VX_PANEL_HEIGHT (0x0c)
+#define VX_PANEL_SCALE (0x10)
+#define VX_PANEL_SHOW (0x14)
+#define VX_PANEL_FRAMES (0x18)
+#define VX_PANEL_BACKLIGHT (0x1c)
+#endif
 
 // Frame counter: the DMA channel starts from this count and decrements once per frame.
 #define FRAME_DMA_COUNT (0x0fffffffu)
@@ -204,6 +223,9 @@ static void st7701_write9(uint32_t word) {
 }
 
 static void st7701_init_panel(void) {
+    #if MICROPY_HW_RGBPANEL_VELXIO
+    return; // no ST7701S in the emulator
+    #endif
     const uint pins[] = { PIN_LCD_CS, PIN_LCD_SCK, PIN_LCD_SDA, PIN_LCD_RST };
     for (size_t i = 0; i < MP_ARRAY_SIZE(pins); ++i) {
         gpio_init(pins[i]);
@@ -251,6 +273,9 @@ static void backlight_set(uint pct) {
         pct = 100;
     }
     rgbpanel_state.backlight = pct;
+    #if MICROPY_HW_RGBPANEL_VELXIO
+    VX_PANEL_REG(VX_PANEL_BACKLIGHT) = pct;
+    #endif
     if (pct == 0 || pct == 100) {
         gpio_init(PIN_BL);
         gpio_set_dir(PIN_BL, GPIO_OUT);
@@ -274,12 +299,15 @@ static uint32_t frame_count(void) {
     if (!rgbpanel_state.running) {
         return 0;
     }
+    #if MICROPY_HW_RGBPANEL_VELXIO
+    return VX_PANEL_REG(VX_PANEL_FRAMES);
+    #endif
     return FRAME_DMA_COUNT - (dma_hw->ch[rgbpanel_state.dma_frame].transfer_count & FRAME_DMA_COUNT);
 }
 
 // The data state machine stalled on an empty TX FIFO since the last call.
 static void poll_underrun(void) {
-    if (!rgbpanel_state.running) {
+    if (!rgbpanel_state.running || MICROPY_HW_RGBPANEL_VELXIO) {
         return;
     }
     uint32_t bit = 1u << (PIO_FDEBUG_TXSTALL_LSB + rgbpanel_state.sm_data);
@@ -327,7 +355,26 @@ static void build_cb_list(rgbpanel_cb_t *cb, const uint16_t *fb) {
 
 // Scan out buffer i from the next frame on, and wait until the control channel
 // reads from its list: from then on the other buffer is no longer read.
+#if MICROPY_HW_RGBPANEL_VELXIO
+static void vx_show(uint i) {
+    VX_PANEL_REG(VX_PANEL_FB_ADDR) = (uint32_t)fb_of(i);
+    VX_PANEL_REG(VX_PANEL_WIDTH) = FB_W;
+    VX_PANEL_REG(VX_PANEL_HEIGHT) = FB_H;
+    VX_PANEL_REG(VX_PANEL_SCALE) = SCALE;
+    VX_PANEL_REG(VX_PANEL_SHOW) = 1;
+}
+#endif
+
 static bool select_buffer(uint i, uint32_t timeout_us, bool handle_events) {
+    #if MICROPY_HW_RGBPANEL_VELXIO
+    (void)timeout_us;
+    (void)handle_events;
+    if (rgbpanel_state.running) {
+        vx_show(i);
+    }
+    rgbpanel_state.shown = i;
+    return true;
+    #endif
     rgbpanel_cb_t *cb = cb_list(i);
     rgbpanel_cb_top = (uint32_t)cb;
     if (rgbpanel_state.running) {
@@ -370,6 +417,9 @@ static void scanout_stop(void) {
         return;
     }
     rgbpanel_state.running = false;
+    #if MICROPY_HW_RGBPANEL_VELXIO
+    return;
+    #endif
     pio_set_sm_mask_enabled(SYNC_PIO, (1u << rgbpanel_state.sm_hsync) | (1u << rgbpanel_state.sm_vsync), false);
     pio_set_sm_mask_enabled(DATA_PIO, (1u << rgbpanel_state.sm_line) | (1u << rgbpanel_state.sm_data), false);
 
@@ -411,6 +461,13 @@ static uint add_program(PIO pio, const pio_program_t *prog) {
 
 static void scanout_start(uint32_t pclk_hz) {
     uint32_t sys_hz = clock_get_hz(clk_sys);
+    #if MICROPY_HW_RGBPANEL_VELXIO
+    rgbpanel_state.pclk_hz = pclk_hz;
+    rgbpanel_state.sys_hz = sys_hz;
+    rgbpanel_state.running = true;
+    vx_show(rgbpanel_state.shown);
+    return;
+    #endif
     // lcd_hsync runs at 2 x PCLK; only integer dividers (no fractional jitter).
     uint32_t div = sys_hz / (2 * pclk_hz);
     if (div == 0 || div > 0xffff || div * 2 * pclk_hz != sys_hz) {
@@ -730,6 +787,11 @@ static void lv_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
     if (buf2() != NULL && lv_display_flush_is_last(disp)) {
         select_buffer(1 - rgbpanel_state.shown, 100000, false);
     }
+    #if MICROPY_HW_RGBPANEL_VELXIO
+    else if (lv_display_flush_is_last(disp) && rgbpanel_state.running) {
+        vx_show(rgbpanel_state.shown); // one buffer: the frame is complete
+    }
+    #endif
     lv_display_flush_ready(disp);
 }
 
@@ -860,3 +922,19 @@ const mp_obj_module_t rgbpanel_user_cmodule = {
 };
 
 MP_REGISTER_MODULE(MP_QSTR_rgbpanel, rgbpanel_user_cmodule);
+
+#if MICROPY_HW_RGBPANEL_VELXIO
+// Velxio variant (the board in an emulator): its machine has no double
+// coprocessor and no GPIO coprocessor, so the variant builds without them
+// (PICO_USE_GPIO_COPROCESSOR=0, software doubles, MICROPY_RP2350_NO_DCP) and
+// skips the SDK's per-core coprocessor init, which reads the DCP. This one
+// enables the FPU only (CP10 and CP11), at the same point of the start-up.
+#include "pico/runtime.h"
+#include "pico/runtime_init.h"
+
+static void velxio_enable_fpu(void) {
+    *(volatile uint32_t *)0xe000ed88 |= 0x00f00000u; // CPACR: CP10, CP11 full access
+    __asm volatile ("dsb\n isb" ::: "memory");
+}
+PICO_RUNTIME_INIT_FUNC_PER_CORE(velxio_enable_fpu, PICO_RUNTIME_INIT_PER_CORE_ENABLE_COPROCESSORS);
+#endif

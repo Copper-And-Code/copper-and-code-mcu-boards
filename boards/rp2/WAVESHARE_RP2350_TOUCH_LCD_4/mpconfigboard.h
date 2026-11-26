@@ -1,5 +1,7 @@
 // Board and hardware specific configuration
+#ifndef MICROPY_HW_BOARD_NAME
 #define MICROPY_HW_BOARD_NAME "Waveshare RP2350-Touch-LCD-4"
+#endif
 
 // UART0 on the header pins (GPIO46 TX, GPIO45 RX).
 #define MICROPY_HW_UART0_TX     (46)
