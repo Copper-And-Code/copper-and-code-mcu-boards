@@ -1,0 +1,5 @@
+# 2026-11-14 00:28:59 port=/dev/ttyUSB0 file=/shell.py repeat=30 start=None
+# boot:  | SPIWP:0xee | mode:DIO, clock div:1 | load:0x3fce2820,len:0xeac | load:0x403c8700,len:0xc28 | load:0x403cb700,len:0x2ff8 | entry 0x403c88ac | MicroPython shell, `help` lists the commands, | `exit` or Ctrl-D ends it | [K[1;32mmpy@esp32[0m:[1;34m/[0m$  | [K[1;32mmpy@esp32[0m:[1;34m/[0m$ 
+long    30 Ctrl-C, prompt back in 0.09 s on average, 0.10 s at most, tracebacks 0
+output  30 Ctrl-C, prompt back in 0.47 s on average, 0.80 s at most, tracebacks 0
+line    30 Ctrl-C, prompt back in 0.05 s on average, 0.05 s at most, tracebacks 0

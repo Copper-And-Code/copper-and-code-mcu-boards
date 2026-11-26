@@ -1,0 +1,14 @@
+# 2026-11-14 00:14:44 V1.3 on /dev/ttyUSB1 (CH340, usb-0:7), UART bootloader; release image dist/STM32H7_CORE-V13-v0.1.7.hex sha256 b7eb948f; rollback dist/STM32H7_CORE-V13-v0.1.6.hex
+bootloader v3.1, chip id 0x450, commands 0001021121314463738292
+image 08000000-0811a083 (1155204 bytes), erasing sectors [0, 1, 2, 3, 4, 5, 6, 7, 8]
+erased in 6.3 s
+bank 2 erased in 11.3 s
+
+written 4513 blocks in 148.4 s
+
+verify: ok
+reset into the firmware
+0fd6c573ea on 2026-11-14 | STM32H7_CORE V1.3 with STM32H743
+CONTRACT 1 1024 600 2 True True
+/flash 19 ['boot.py', 'main.py', 'pybcdc.inf', 'README.txt', 'ansi_term.py', 'lvgl_probe.py', 'config.py', 'term_widget.py', 'editor.py', 'test_lv.py', 'hello_lv.py', 'tetris.py', 'shell.py', 'tetris_lvgl.py', 'GT911_2', 'lvgl_ide_apps', 'System Volume Information', 'lms_apps', 'shell']
+>
