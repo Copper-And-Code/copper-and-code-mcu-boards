@@ -58,6 +58,7 @@ extra_css:
 
 nav:
   - Home: index.md
+  - "Programming the RP2350 and the ESP32": programming.md
   - Boards:
       - Waveshare RP2350-Touch-LCD-4: boards/rp2350-touch-lcd-4.md
       - STM32H743 boards: stm32h743.md
