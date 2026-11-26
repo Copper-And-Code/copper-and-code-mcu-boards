@@ -1,0 +1,29 @@
+rp2: MICROPY_RP2350_NO_DCP, a float build without the RP2350 double coprocessor.
+For an emulator that has no DCP (copper-and-code-mcu-boards VELXIO variants):
+the M33 FPU only, __aeabi_f2d from the compiler. Unset, nothing changes.
+
+--- a/ports/rp2/CMakeLists.txt
++++ b/ports/rp2/CMakeLists.txt
+@@ -295,6 +295,11 @@
+         ${PICO_SDK_PATH}/src/rp2_common/pico_float/float_init_rom_rp2040.c
+         ${PICO_SDK_PATH}/src/rp2_common/pico_float/float_v1_rom_shim_rp2040.S
+     )
++elseif(PICO_RP2350 AND PICO_ARM AND MICROPY_RP2350_NO_DCP)
++    # No double coprocessor (an emulator without one): the M33 FPU only.
++    target_sources(pico_float_micropython INTERFACE
++        ${PICO_SDK_PATH}/src/rp2_common/pico_float/float_common_m33.S
++    )
+ elseif(PICO_RP2350 AND PICO_ARM)
+     target_sources(pico_float_micropython INTERFACE
+         ${PICO_SDK_PATH}/src/rp2_common/pico_float/float_aeabi_dcp.S
+@@ -326,7 +331,9 @@
+ if(PICO_RP2040)
+     pico_wrap_function(pico_float_micropython __aeabi_f2ulz)
+ endif()
+-pico_wrap_function(pico_float_micropython __aeabi_f2d)
++if(NOT MICROPY_RP2350_NO_DCP)
++    pico_wrap_function(pico_float_micropython __aeabi_f2d)
++endif()
+ 
+ if (MICROPY_PY_LWIP)
+     target_link_libraries(${MICROPY_TARGET} micropy_lib_lwip)
