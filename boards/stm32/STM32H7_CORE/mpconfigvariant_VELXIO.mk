@@ -2,3 +2,5 @@
 # no SD card (Renode models neither), its own board name so that stm32_board.py
 # does not look for the GT911.
 CFLAGS += -DBOARD_V13 -DBOARD_VELXIO
+# The simulator's modules on top of the board's (manifest_velxio.py).
+FROZEN_MANIFEST = $(BOARD_DIR)/manifest_velxio.py
